@@ -9,6 +9,7 @@ import {
   commit,
   createBranch,
   createRepo,
+  DEFAULT_BRANCH_NAMES,
   deleteBranch,
   goBack,
   initialModel,
@@ -42,6 +43,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>('guided')
   const [stepIdx, setStepIdx] = useState(0)
   const [model, setModel] = useState<ModelState>(initialModel)
+  const [showCmds, setShowCmds] = useState(false)
   const primaryRef = useRef<HTMLButtonElement>(null)
 
   const step = STEPS[stepIdx]
@@ -110,6 +112,15 @@ export default function App() {
           <span className="text-sm font-semibold text-violet-300">🎮 Sandbox — serbest oyun</span>
         )}
         <div className="flex gap-2">
+          <button
+            className={`rounded-xl border px-3 py-1.5 text-sm font-semibold transition ${
+              showCmds ? 'border-emerald-500 text-emerald-300' : 'border-zinc-700 text-zinc-300 hover:border-zinc-500'
+            }`}
+            onClick={() => setShowCmds((v) => !v)}
+            aria-pressed={showCmds}
+          >
+            {'</> Komutlar'}
+          </button>
           {mode === 'guided' ? (
             <button className="rounded-xl border border-zinc-700 px-3 py-1.5 text-sm font-semibold text-zinc-300 hover:border-zinc-500" onClick={enterSandbox}>
               Sandbox’a atla 🎮
@@ -148,8 +159,15 @@ export default function App() {
             )}
             <div className="flex flex-wrap justify-center gap-3">
               {step.buttons.map((btn, i) => (
-                <button key={btn.label} ref={i === 0 ? primaryRef : undefined} className={BTN[btn.kind ?? 'primary']} onClick={() => pressStepButton(btn)}>
+                <button
+                  key={btn.label}
+                  ref={i === 0 ? primaryRef : undefined}
+                  className={BTN[btn.kind ?? 'primary']}
+                  data-cmd={btn.cmd}
+                  onClick={() => pressStepButton(btn)}
+                >
                   {btn.label}
+                  {showCmds && btn.cmd && <span className="mt-1 block font-mono text-xs font-normal opacity-60">{btn.cmd}</span>}
                 </button>
               ))}
             </div>
@@ -164,10 +182,12 @@ export default function App() {
                 <button
                   key={b.label}
                   className={`${BTN[b.kind ?? 'ghost']} !px-4 !py-2.5 !text-base`}
+                  data-cmd={b.cmd}
                   disabled={b.disabled}
                   onClick={() => setModel(b.apply(model))}
                 >
                   {b.label}
+                  {showCmds && b.cmd && <span className="mt-1 block font-mono text-xs font-normal opacity-60">{b.cmd}</span>}
                 </button>
               ))}
             </div>
@@ -178,29 +198,38 @@ export default function App() {
   )
 }
 
-type SandboxButton = { label: string; apply: (s: ModelState) => ModelState; disabled?: boolean; kind?: StepButton['kind'] }
+type SandboxButton = { label: string; apply: (s: ModelState) => ModelState; disabled?: boolean; kind?: StepButton['kind']; cmd?: string }
 
 function sandboxActions(s: ModelState): SandboxButton[] {
   if (s.laptopDead) {
-    return [{ label: '☁️ GitHub’dan geri indir (clone)', apply: restoreFromCloud, kind: 'primary' }]
+    return [{ label: '☁️ GitHub’dan geri indir (clone)', apply: restoreFromCloud, kind: 'primary', cmd: 'git clone {repo-adresi}' }]
   }
   const buttons: SandboxButton[] = [
     { label: '🤖 AI’ya geliştirt', apply: aiImprove, kind: 'primary' },
     { label: '💥 AI bozdu!', apply: aiBreak, kind: 'danger', disabled: s.workLook.broken },
-    { label: '💾 Commit at', apply: (m) => commit(m, `Değişiklik ${m.counter}`), kind: 'primary', disabled: !s.dirty },
-    { label: '⏪ Geri dön', apply: goBack, disabled: goBack(s) === s },
-    { label: `☁️ Push'la (${s.currentBranch})`, apply: push, disabled: push(s) === s },
+    {
+      label: '💾 Commit at',
+      apply: (m) => commit(m, `Değişiklik ${m.counter}`),
+      kind: 'primary',
+      disabled: !s.dirty,
+      cmd: 'git add . && git commit -m "mesaj"',
+    },
+    { label: '⏪ Geri dön', apply: goBack, disabled: goBack(s) === s, cmd: s.dirty ? 'git restore .' : 'git reset --hard HEAD~1' },
+    { label: `☁️ Push'la (${s.currentBranch})`, apply: push, disabled: push(s) === s, cmd: `git push -u origin ${s.currentBranch}` },
   ]
 
+  const activeNames = new Set(s.branches.map((b) => b.name))
+  const nextBranchName = DEFAULT_BRANCH_NAMES.find((n) => !activeNames.has(n))
   buttons.push({
     label: '🌿 Branch aç',
     apply: (m) => createBranch(m),
     disabled: s.currentBranch !== 'main' || s.branches.length >= 3,
+    cmd: nextBranchName ? `git switch -c ${nextBranchName}` : undefined,
   })
 
   const others = ['main', ...s.branches.map((b) => b.name)].filter((n) => n !== s.currentBranch)
   for (const name of others) {
-    buttons.push({ label: `🔀 geç: ${name}`, apply: (m) => switchBranch(m, name) })
+    buttons.push({ label: `🔀 geç: ${name}`, apply: (m) => switchBranch(m, name), cmd: `git switch ${name}` })
   }
 
   if (s.currentBranch !== 'main') {
@@ -208,13 +237,19 @@ function sandboxActions(s: ModelState): SandboxButton[] {
     const own = branchCommits(s, name)
     const prOpenForThis = s.pr?.status === 'open' && s.pr.from === name
     const allPushed = own.length > 0 && own.every((c) => s.pushedIds.includes(c.id))
-    buttons.push({ label: `✅ Merge et (${name} → main)`, apply: mergeBranch, disabled: !own.length || prOpenForThis, kind: 'primary' })
-    buttons.push({ label: `🗑️ Sil: ${name}`, apply: deleteBranch, kind: 'danger' })
+    buttons.push({
+      label: `✅ Merge et (${name} → main)`,
+      apply: mergeBranch,
+      disabled: !own.length || prOpenForThis,
+      kind: 'primary',
+      cmd: `git switch main && git merge ${name}`,
+    })
+    buttons.push({ label: `🗑️ Sil: ${name}`, apply: deleteBranch, kind: 'danger', cmd: `git branch -D ${name}` })
     if (!s.pr || s.pr.status === 'merged') {
-      buttons.push({ label: '⇄ PR aç', apply: openPR, disabled: !allPushed })
+      buttons.push({ label: '⇄ PR aç', apply: openPR, disabled: !allPushed, cmd: 'gh pr create' })
     }
     if (s.pr?.status === 'open') {
-      buttons.push({ label: `👀 PR'ı onayla`, apply: approvePR, kind: 'primary' })
+      buttons.push({ label: `👀 PR'ı onayla`, apply: approvePR, kind: 'primary', cmd: 'GitHub arayüzünde: Review → Approve' })
     }
   }
 

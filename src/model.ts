@@ -41,7 +41,7 @@ export type ModelState = {
 export const THEME_COUNT = 5
 export const MAX_BLOCKS = 5
 
-const DEFAULT_BRANCH_NAMES = ['deneme', 'tasarim', 'ozellik']
+export const DEFAULT_BRANCH_NAMES = ['deneme', 'tasarim', 'ozellik']
 
 export function initialModel(): ModelState {
   return {

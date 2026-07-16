@@ -34,3 +34,47 @@
     animation: none;
   }
 }
+
+/* Command tooltip: pure CSS, hover-only, driven by data-cmd on the button. */
+[data-cmd] {
+  position: relative;
+}
+[data-cmd]::after,
+[data-cmd]::before {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+}
+[data-cmd]::after {
+  content: attr(data-cmd);
+  bottom: calc(100% + 10px);
+  max-width: min(80vw, 420px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #05070c;
+  color: #6ee7b7;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 400;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+[data-cmd]::before {
+  content: '';
+  bottom: calc(100% + 5px);
+  border: 5px solid transparent;
+  border-top-color: #05070c;
+}
+[data-cmd]:hover::after,
+[data-cmd]:hover::before {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-cmd]::after, [data-cmd]::before { transition: none; }
+}
