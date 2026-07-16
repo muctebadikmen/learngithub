@@ -79,6 +79,7 @@ export function switchTo(
     },
     events: [
       { kind: 'head-moved', head },
+      { kind: 'index-updated', paths: Object.keys(entries) },
       { kind: 'worktree-updated', paths: Object.keys(entries) },
     ],
   };

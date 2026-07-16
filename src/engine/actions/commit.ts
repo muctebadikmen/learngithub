@@ -16,10 +16,16 @@ export function commit(
   let entries: Record<string, Oid>;
   if (opts.paths) {
     // `git commit <path>`: WORKING version of named paths over the HEAD tree — Task 9.
-    entries = { ...treeOf(state, parentOid) };
+    const headTree = treeOf(state, parentOid);
+    entries = { ...headTree };
+    const originalIndex = state.index;
     const lost: Oid[] = [];
     for (const path of opts.paths) {
       if (!(path in state.workingDir)) {
+        return { state, events: [{ kind: 'error', reasonKey: 'pathspec-no-match', params: { path } }] };
+      }
+      const tracked = path in originalIndex || path in headTree;
+      if (!tracked) {
         return { state, events: [{ kind: 'error', reasonKey: 'pathspec-no-match', params: { path } }] };
       }
       const res = putObject(objects, { kind: 'blob', content: state.workingDir[path] });
@@ -29,6 +35,7 @@ export function commit(
       index = { ...index, [path]: res.oid }; // staged snapshot CONSUMED, not bypassed (spec §8.4)
     }
     if (lost.length > 0) events.push({ kind: 'staged-snapshot-lost', oids: lost });
+    events.push({ kind: 'index-updated', paths: opts.paths });
   } else {
     entries = { ...index };
   }

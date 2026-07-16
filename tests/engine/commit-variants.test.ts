@@ -53,4 +53,16 @@ describe('the git commit <path> trap (spec §8.4 Topic 4)', () => {
     expect(r.state.index['a.txt']).not.toBe(stagedOid); // gone from the index
     expect(r.state.objects[stagedOid]).toEqual({ kind: 'blob', content: 'two' }); // but not from the store
   });
+
+  it('errors on committing an untracked path, like real git', () => {
+    const base = run([
+      write('a.txt', 'one'), addF('a.txt'), commitM('c1: base'),
+      write('new.txt', 'n'),               // written but never added
+    ]);
+    const r = reduce(base, { cmd: 'commit', message: 'c2', paths: ['new.txt'] });
+    expect(r.events).toEqual([
+      { kind: 'error', reasonKey: 'pathspec-no-match', params: { path: 'new.txt' } },
+    ]);
+    expect(r.state).toBe(base);
+  });
 });
