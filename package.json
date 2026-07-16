@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "vitest run --exclude tests/differential/**",
+    "test": "vitest run --exclude 'tests/differential/**'",
     "test:diff": "vitest run tests/differential",
     "test:all": "vitest run",
     "lint": "oxlint",
