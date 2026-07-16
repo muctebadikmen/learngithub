@@ -1,8 +1,10 @@
-import type { LayoutModel, LayoutNode } from '../layout/types';
+import type { LayoutModel, LayoutNode, LayoutRef } from '../layout/types';
 import { COL_W, LANE_H, MARGIN_X, MARGIN_Y, NODE_R, laneColor, nodeX, nodeY, shortLabel } from './geometry';
 
 const GHOST = '#6b7280'; // muted gray for unreachable commits
 const PILL_STEP = 22;    // vertical gap between stacked labels above a node
+const CHAR_W = 7;        // approx px per label character at our font size
+const PAD = 16;          // viewBox padding around content
 
 // Edge from a child (right) back to its parent (left). Straight when same lane;
 // a gentle horizontal S-curve when the branch changes lanes.
@@ -14,6 +16,16 @@ function edgePath(cx: number, cy: number, px: number, py: number): string {
 
 // Baseline Y of the i-th stacked label above a node (i=0 is closest to the dot).
 const pillY = (y: number, i: number): number => y - NODE_R - 12 - i * PILL_STEP;
+const refLabel = (r: LayoutRef): string => (r.isHead ? `HEAD → ${r.label}` : r.label);
+
+// Half-width (px from the node's centre x) of the widest label on a node, so the
+// viewBox reserves horizontal room and no label clips off the left or right edge.
+function labelHalfWidth(nodeRefs: LayoutRef[], message: string, detached: boolean): number {
+  let half = (shortLabel(message).length * CHAR_W) / 2 + 6;
+  for (const r of nodeRefs) half = Math.max(half, (refLabel(r).length * CHAR_W + 16) / 2);
+  if (detached) half = Math.max(half, 26);
+  return half;
+}
 
 export function GitGraph({ model }: { model: LayoutModel }) {
   const { nodes, edges, refs } = model;
@@ -21,8 +33,8 @@ export function GitGraph({ model }: { model: LayoutModel }) {
 
   if (nodes.length === 0) {
     return (
-      <svg viewBox="0 0 420 200" width="100%" role="img" aria-label="commit graph">
-        <text x="210" y="100" textAnchor="middle" fill="#6b7280"
+      <svg viewBox="0 0 420 180" width={420} height={180} role="img" aria-label="commit graph">
+        <text x="210" y="94" textAnchor="middle" fill="#6b7280"
               fontFamily="ui-monospace, monospace" fontSize="16">
           no commits yet
         </text>
@@ -31,7 +43,7 @@ export function GitGraph({ model }: { model: LayoutModel }) {
   }
 
   // Refs grouped by the commit they point at, so multiple labels stack above a node.
-  const refsByOid = new Map<string, typeof refs>();
+  const refsByOid = new Map<string, LayoutRef[]>();
   for (const r of refs) {
     const list = refsByOid.get(r.oid) ?? [];
     list.push(r);
@@ -41,23 +53,33 @@ export function GitGraph({ model }: { model: LayoutModel }) {
   // A detached HEAD draws its own marker, stacked ABOVE any branch pills on the same commit.
   const detachedOid = model.detachedHead ? model.headOid : null;
 
-  // Tallest label stack across all nodes → headroom the viewBox needs so pills on
-  // a lane-0 (topmost) node never clip above the top edge.
+  // Tallest label stack → vertical headroom; widest labels → horizontal room.
   let maxStack = 0;
+  let minX = Infinity;
+  let maxX = -Infinity;
   for (const n of nodes) {
-    const count = (refsByOid.get(n.oid)?.length ?? 0) + (n.oid === detachedOid ? 1 : 0);
-    if (count > maxStack) maxStack = count;
+    const nodeRefs = refsByOid.get(n.oid) ?? [];
+    const stack = nodeRefs.length + (n.oid === detachedOid ? 1 : 0);
+    if (stack > maxStack) maxStack = stack;
+    const x = nodeX(n.row);
+    const half = labelHalfWidth(nodeRefs, n.message, n.oid === detachedOid);
+    minX = Math.min(minX, x - half);
+    maxX = Math.max(maxX, x + half);
   }
 
   const topPad = maxStack === 0 ? 26 : 26 + maxStack * PILL_STEP;
   const botPad = NODE_R + 34; // room for the message under the lowest lane
-  const minY = MARGIN_Y - NODE_R - topPad;
-  const bottom = MARGIN_Y + Math.max(0, model.laneCount - 1) * LANE_H + botPad;
-  const width = MARGIN_X * 2 + Math.max(0, model.rowCount - 1) * COL_W + 160;
-  const height = bottom - minY;
+  const vbX = Math.min(minX, MARGIN_X - NODE_R) - PAD;
+  const vbY = MARGIN_Y - NODE_R - topPad;
+  const contentRight = MARGIN_X + Math.max(0, model.rowCount - 1) * COL_W + NODE_R;
+  const vbW = Math.max(maxX, contentRight) + PAD - vbX;
+  const vbH = MARGIN_Y + Math.max(0, model.laneCount - 1) * LANE_H + botPad - vbY;
 
+  // Native pixel size (viewBox units == px) so nodes never rescale as history grows —
+  // the container scrolls instead, keeping every existing commit visually put.
   return (
-    <svg viewBox={`0 ${minY} ${width} ${height}`} width="100%" role="img" aria-label="commit graph"
+    <svg viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`} width={vbW} height={vbH}
+         role="img" aria-label="commit graph"
          fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace">
       {/* edges under nodes */}
       <g strokeWidth={2.5} fill="none">
@@ -91,8 +113,8 @@ export function GitGraph({ model }: { model: LayoutModel }) {
               {shortLabel(n.message)}
             </text>
             {nodeRefs.map((r, i) => {
-              const label = r.isHead ? `HEAD → ${r.label}` : r.label;
-              const w = label.length * 7 + 16;
+              const label = refLabel(r);
+              const w = label.length * CHAR_W + 16;
               const py = pillY(y, i);
               return (
                 <g key={r.label}>

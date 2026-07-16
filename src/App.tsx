@@ -22,7 +22,12 @@ const DEMO: GitAction[] = [
 
 function buildDemo(): RepoState {
   let state = initialState();
-  for (const action of DEMO) state = reduce(state, action).state;
+  for (const action of DEMO) {
+    const result = reduce(state, action);
+    const err = result.events.find((e) => e.kind === 'error');
+    if (err) throw new Error(`demo build error on ${JSON.stringify(action)}: ${JSON.stringify(err)}`);
+    state = result.state;
+  }
   return state;
 }
 

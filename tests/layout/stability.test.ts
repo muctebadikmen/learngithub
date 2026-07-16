@@ -24,9 +24,13 @@ function assertStable(actions: GitAction[]) {
     expect(err, `unexpected error on ${JSON.stringify(action)}: ${JSON.stringify(err)}`).toBeUndefined();
     const after = positions(next.state);
     for (const [oid, pos] of before) {
-      if (after.has(oid)) {
-        expect(after.get(oid), `commit ${oid} moved on ${JSON.stringify(action)}`).toBe(pos);
-      }
+      // insertionOrder is append-only, so every prior commit must still be present…
+      expect(
+        after.has(oid),
+        `commit ${oid} vanished on ${JSON.stringify(action)} — insertionOrder must be append-only`,
+      ).toBe(true);
+      // …at exactly its old (row, lane).
+      expect(after.get(oid), `commit ${oid} moved on ${JSON.stringify(action)}`).toBe(pos);
     }
     state = next.state;
   }

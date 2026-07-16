@@ -19,7 +19,21 @@ export function layout(state: RepoState): LayoutModel {
   const row: Record<Oid, number> = {};
   for (const oid of commits) {
     const parents = getCommit(state, oid).parents;
-    row[oid] = parents.length === 0 ? 0 : 1 + Math.max(...parents.map((p) => row[p] ?? 0));
+    row[oid] =
+      parents.length === 0
+        ? 0
+        : 1 +
+          Math.max(
+            ...parents.map((p) => {
+              const r = row[p];
+              if (r === undefined) {
+                throw new Error(
+                  `engine bug: parent ${p} of ${oid} not seen before it — insertionOrder must be topologically ordered`,
+                );
+              }
+              return r;
+            }),
+          );
   }
 
   const lane: Record<Oid, number> = {};

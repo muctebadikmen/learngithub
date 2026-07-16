@@ -1,6 +1,10 @@
 import type { Oid } from '../engine/types';
 
-/** A commit placed on the grid. row 0 = oldest (top); lane 0 = leftmost column. */
+/**
+ * A commit placed on the grid. `row` = generation (0 = oldest), `lane` = branch
+ * line (0 = trunk). Orientation is the renderer's choice; the current renderer
+ * maps row→X (time flows left→right) and lane→Y (branches stack downward).
+ */
 export interface LayoutNode {
   oid: Oid;
   row: number;
@@ -10,7 +14,7 @@ export interface LayoutNode {
   reachable: boolean; // false => ghost (unreachable) commit; still drawn, faded
 }
 
-/** A parent link, drawn from the child down/across to its parent. */
+/** A parent link; the renderer draws it from the child across to its parent. */
 export interface LayoutEdge {
   child: Oid;
   parent: Oid;
