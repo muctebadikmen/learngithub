@@ -18,4 +18,21 @@ describe('announce', () => {
   it('is empty for no events', () => {
     expect(announce([])).toBe('');
   });
+  it('describes staging an add', () => {
+    expect(announce([{ kind: 'index-updated', paths: ['a.txt'] }])).toBe('Staging area updated.');
+  });
+  it('describes a working-tree restore', () => {
+    expect(announce([{ kind: 'worktree-updated', paths: ['a.txt'] }])).toBe('Working files updated.');
+  });
+  it('describes a file save', () => {
+    expect(announce([{ kind: 'file-written', path: 'a.txt' }])).toBe('File saved.');
+  });
+  it('does not add staging noise to a branch switch', () => {
+    const ev: EngineEvent[] = [
+      { kind: 'head-moved', head: { kind: 'branch', name: 'feature' } },
+      { kind: 'index-updated', paths: [] },
+      { kind: 'worktree-updated', paths: [] },
+    ];
+    expect(announce(ev)).toBe('Now on branch feature.');
+  });
 });

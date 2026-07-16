@@ -17,7 +17,6 @@ export function useRepo(seed?: (s: RepoState) => RepoState): RepoApi {
   const [state, setState] = useState<RepoState>(() => (seed ? seed(freshRepo()) : freshRepo()));
   const [lastEvents, setLastEvents] = useState<EngineEvent[]>([]);
   const ref = useRef(state);
-  ref.current = state;
 
   const dispatch = useCallback((action: GitAction): EngineEvent[] => {
     const r = reduce(ref.current, action);

@@ -4,6 +4,8 @@ import { describeEvent } from './messages';
 /** A short spoken sentence for the ARIA live region, from the last dispatch's events. */
 export function announce(events: EngineEvent[]): string {
   const parts: string[] = [];
+  const has = (k: EngineEvent['kind']) => events.some((e) => e.kind === k);
+  const structural = has('commit-created') || has('head-moved') || has('ref-moved');
   for (const e of events) {
     switch (e.kind) {
       case 'commit-created': parts.push(`Created commit ${e.oid.slice(0, 8)}.`); break;
@@ -16,6 +18,11 @@ export function announce(events: EngineEvent[]): string {
       case 'no-op': parts.push(describeEvent(e.reasonKey)); break;
       default: break;
     }
+  }
+  if (!structural) {
+    if (has('index-updated')) parts.push('Staging area updated.');
+    else if (has('worktree-updated')) parts.push('Working files updated.');
+    else if (has('file-written')) parts.push('File saved.');
   }
   return parts.join(' ');
 }

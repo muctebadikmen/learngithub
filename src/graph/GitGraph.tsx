@@ -37,7 +37,7 @@ export function GitGraph({ model, onSelect, selectedOid }: {
 
   if (nodes.length === 0) {
     return (
-      <svg viewBox="0 0 420 180" width={420} height={180} role="img" aria-label="commit graph">
+      <svg viewBox="0 0 420 180" width={420} height={180} role={onSelect ? 'group' : 'img'} aria-label="commit graph">
         <text x="210" y="94" textAnchor="middle" fill="#6b7280"
               fontFamily="ui-monospace, monospace" fontSize="16">
           no commits yet
@@ -83,7 +83,7 @@ export function GitGraph({ model, onSelect, selectedOid }: {
   // the container scrolls instead, keeping every existing commit visually put.
   return (
     <svg viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`} width={vbW} height={vbH}
-         role="img" aria-label="commit graph"
+         role={onSelect ? 'group' : 'img'} aria-label="commit graph"
          fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace">
       {/* edges under nodes */}
       <g strokeWidth={2.5} fill="none">

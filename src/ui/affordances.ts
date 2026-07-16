@@ -20,4 +20,12 @@ export function branchNames(state: RepoState): string[] {
   return Object.keys(state.branches).sort();
 }
 
+/** A conservative git-refname check for UI gating (the engine itself doesn't validate). */
+export function validBranchName(name: string): boolean {
+  if (name === '' || name === 'HEAD') return false;
+  if (!/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(name)) return false;
+  if (name.includes('..') || name.endsWith('/') || name.endsWith('.lock')) return false;
+  return true;
+}
+
 export { isDirty };

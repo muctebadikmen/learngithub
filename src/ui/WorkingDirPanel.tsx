@@ -50,7 +50,12 @@ export function WorkingDirPanel({ state, dispatch }: { state: RepoState; dispatc
         <button
           className="rounded bg-zinc-700 px-2 py-1 text-sm hover:bg-zinc-600 disabled:opacity-40"
           disabled={newName.trim() === ''}
-          onClick={() => { dispatch({ cmd: 'writeFile', path: newName.trim(), content: '' }); openEditor(newName.trim()); setNewName(''); }}
+          onClick={() => {
+            const path = newName.trim();
+            if (!(path in state.workingDir)) dispatch({ cmd: 'writeFile', path, content: '' });
+            openEditor(path);
+            setNewName('');
+          }}
         >
           + file
         </button>

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import type { GitAction, RepoState } from '../engine/types';
-import { branchNames, currentBranch } from './affordances';
+import { branchNames, currentBranch, validBranchName } from './affordances';
 
 export function RefBar({ state, dispatch }: { state: RepoState; dispatch: (a: GitAction) => unknown }) {
   const [name, setName] = useState('');
   const current = currentBranch(state);
   const branches = branchNames(state);
+  const ok = validBranchName(name.trim());
 
   return (
     <section className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3 space-y-3">
@@ -38,7 +39,7 @@ export function RefBar({ state, dispatch }: { state: RepoState; dispatch: (a: Gi
         />
         <button
           className="rounded bg-zinc-700 px-2 py-1 text-xs hover:bg-zinc-600 disabled:opacity-40"
-          disabled={name.trim() === ''}
+          disabled={!ok}
           onClick={() => { dispatch({ cmd: 'branch', name: name.trim() }); setName(''); }}
           title="create a branch here (git branch)"
         >
@@ -46,7 +47,7 @@ export function RefBar({ state, dispatch }: { state: RepoState; dispatch: (a: Gi
         </button>
         <button
           className="rounded bg-emerald-700 px-2 py-1 text-xs hover:bg-emerald-600 disabled:opacity-40"
-          disabled={name.trim() === ''}
+          disabled={!ok}
           onClick={() => { dispatch({ cmd: 'switch', target: name.trim(), create: true }); setName(''); }}
           title="create and switch (git switch -c)"
         >

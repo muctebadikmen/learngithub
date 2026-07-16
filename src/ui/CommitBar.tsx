@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import type { GitAction, RepoState } from '../engine/types';
+import type { EngineEvent, GitAction, RepoState } from '../engine/types';
 import { canCommit } from './affordances';
 
-export function CommitBar({ state, dispatch }: { state: RepoState; dispatch: (a: GitAction) => unknown }) {
+export function CommitBar({ state, dispatch }: { state: RepoState; dispatch: (a: GitAction) => EngineEvent[] }) {
   const [message, setMessage] = useState('');
   const ready = canCommit(state) && message.trim() !== '';
   const commit = (amend?: boolean) => {
-    dispatch({ cmd: 'commit', message: message.trim(), amend });
-    setMessage('');
+    const events = dispatch({ cmd: 'commit', message: message.trim(), amend });
+    if (!events.some((e) => e.kind === 'error' || e.kind === 'no-op')) setMessage('');
   };
   return (
     <section className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
