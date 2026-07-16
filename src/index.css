@@ -1,18 +1,36 @@
 @import "tailwindcss";
 
-.graph-node { transition: transform 320ms ease, opacity 320ms ease; }
-.graph-node circle, .graph-node text, .graph-node rect { transition: opacity 320ms ease; }
-
-/* Mouse clicks show only our own selection ring; keyboard focus keeps a visible outline. */
-.graph-node:focus { outline: none; }
-.graph-node:focus-visible { outline: 2px solid #d4d4d8; outline-offset: 4px; }
-
-@media (prefers-reduced-motion: reduce) {
-  .graph-node,
-  .graph-node circle,
-  .graph-node text,
-  .graph-node rect {
-    transition: none;
-  }
+/* Scene node enter + move animations */
+.scene-node {
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1), opacity 600ms ease;
+  animation: node-pop 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes node-pop {
+  from { opacity: 0; scale: 0.4; }
+  to { opacity: 1; scale: 1; }
 }
 
+.app-card { transition: opacity 400ms ease; }
+.app-card rect, .app-card circle { transition: fill 400ms ease, stroke 400ms ease, width 400ms ease; }
+.app-broken { animation: shake 450ms ease; }
+@keyframes shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-7px); }
+  40%, 60% { transform: translateX(7px); }
+}
+
+.step-text { animation: rise 350ms ease; }
+.event-line { animation: rise 350ms ease; }
+@keyframes rise {
+  from { opacity: 0; translate: 0 8px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-node, .app-card, .app-broken, .step-text, .event-line,
+  .app-card rect, .app-card circle {
+    transition: none;
+    animation: none;
+  }
+}

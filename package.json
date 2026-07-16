@@ -1,14 +1,12 @@
 {
-  "name": "git-commit-game",
+  "name": "github-rehberi",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "vitest run --exclude 'tests/differential/**'",
-    "test:diff": "vitest run tests/differential",
-    "test:all": "vitest run",
+    "test": "vitest run",
     "lint": "oxlint",
     "preview": "vite preview"
   },
