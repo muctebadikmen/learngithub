@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { layout } from './layout/layout';
 import { GitGraph } from './graph/GitGraph';
 import { useRepo } from './ui/useRepo';
@@ -26,9 +26,12 @@ export default function App() {
   useEffect(() => { setNotice(noticeFromEvents(repo.lastEvents)); }, [repo.lastEvents]);
   const spoken = announce(repo.lastEvents);
 
+  const seededForRef = useRef<string | null>(null);
+
   const index = progress.currentIndex;
   const level = LEVELS[index];
-  const complete = mode === 'levels' && level.checks.every((c) => c.done(repo.state));
+  const seeded = seededForRef.current === level.id;
+  const complete = mode === 'levels' && seeded && level.checks.every((c) => c.done(repo.state));
   const unlockedCount = Math.min(LEVELS.length, Math.max(index + 1, progress.completed.length + 1));
 
   // (re)seed the repo whenever the active level changes or we switch between levels/sandbox mode
@@ -36,6 +39,7 @@ export default function App() {
   useEffect(() => {
     setSelectedOid(null);
     repo.reset(mode === 'levels' ? level.seed : undefined);
+    seededForRef.current = levelKey;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [levelKey]);
 
@@ -50,7 +54,8 @@ export default function App() {
   }, [complete]);
 
   const goTo = (i: number) => {
-    const next = { ...progress, currentIndex: i };
+    const clamped = Math.min(LEVELS.length - 1, Math.max(0, i));
+    const next = { ...progress, currentIndex: clamped };
     setProgress(next);
     saveProgress(next);
   };
