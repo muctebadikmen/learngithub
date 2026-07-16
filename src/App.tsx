@@ -10,15 +10,50 @@ import { HistoryTools } from './ui/HistoryTools';
 import { CommitInspector } from './ui/CommitInspector';
 import { Notice, noticeFromEvents, type NoticeData } from './ui/Notice';
 import { announce } from './ui/liveRegion';
+import { LEVELS } from './levels/levels';
+import { LevelPanel } from './levels/LevelPanel';
+import { loadProgress, saveProgress, withCompleted, type Progress } from './levels/progress';
 
 export default function App() {
   const repo = useRepo();
   const model = useMemo(() => layout(repo.state), [repo.state]);
   const [selectedOid, setSelectedOid] = useState<string | null>(null);
 
+  const [mode, setMode] = useState<'levels' | 'sandbox'>('levels');
+  const [progress, setProgress] = useState<Progress>(() => loadProgress(LEVELS.length));
+
   const [notice, setNotice] = useState<NoticeData | null>(null);
   useEffect(() => { setNotice(noticeFromEvents(repo.lastEvents)); }, [repo.lastEvents]);
   const spoken = announce(repo.lastEvents);
+
+  const index = progress.currentIndex;
+  const level = LEVELS[index];
+  const complete = mode === 'levels' && level.checks.every((c) => c.done(repo.state));
+  const unlockedCount = Math.min(LEVELS.length, Math.max(index + 1, progress.completed.length + 1));
+
+  // (re)seed the repo whenever the active level changes or we switch between levels/sandbox mode
+  const levelKey = mode === 'levels' ? level.id : '__sandbox__';
+  useEffect(() => {
+    setSelectedOid(null);
+    repo.reset(mode === 'levels' ? level.seed : undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [levelKey]);
+
+  // persist completion the first time a level's checks all pass
+  useEffect(() => {
+    if (complete && !progress.completed.includes(level.id)) {
+      const next = withCompleted(progress, level.id);
+      setProgress(next);
+      saveProgress(next);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [complete]);
+
+  const goTo = (i: number) => {
+    const next = { ...progress, currentIndex: i };
+    setProgress(next);
+    saveProgress(next);
+  };
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-6">
@@ -26,16 +61,47 @@ export default function App() {
       <header className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">git, visually</h1>
-          <p className="text-sm text-zinc-500 font-mono">edit files · stage · commit · branch — watch the graph</p>
+          <p className="text-sm text-zinc-500 font-mono">learn git by doing — watch the graph</p>
         </div>
-        <button className="rounded border border-zinc-700 px-3 py-1 text-sm text-zinc-400 hover:bg-zinc-800"
-                onClick={() => { repo.reset(); setSelectedOid(null); }}>
-          reset repo
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded border border-zinc-700 overflow-hidden text-sm">
+            <button
+              className={`px-3 py-1 ${mode === 'levels' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400'}`}
+              onClick={() => setMode('levels')}
+            >
+              levels
+            </button>
+            <button
+              className={`px-3 py-1 ${mode === 'sandbox' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400'}`}
+              onClick={() => setMode('sandbox')}
+            >
+              sandbox
+            </button>
+          </div>
+          <button
+            className="rounded border border-zinc-700 px-3 py-1 text-sm text-zinc-400 hover:bg-zinc-800"
+            onClick={() => { setSelectedOid(null); repo.reset(mode === 'levels' ? level.seed : undefined); }}
+          >
+            {mode === 'levels' ? 'restart level' : 'reset repo'}
+          </button>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
         <div className="space-y-4">
+          {mode === 'levels' && (
+            <LevelPanel
+              level={level}
+              index={index}
+              total={LEVELS.length}
+              state={repo.state}
+              complete={complete}
+              onNext={() => goTo(Math.min(LEVELS.length - 1, index + 1))}
+              onRestart={() => { setSelectedOid(null); repo.reset(level.seed); }}
+              onSelect={goTo}
+              unlockedCount={unlockedCount}
+            />
+          )}
           <WorkingDirPanel state={repo.state} dispatch={repo.dispatch} />
           <StagingPanel state={repo.state} dispatch={repo.dispatch} />
           <CommitBar state={repo.state} dispatch={repo.dispatch} />

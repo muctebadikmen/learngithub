@@ -7,7 +7,7 @@ export interface RepoApi {
   state: RepoState;
   lastEvents: EngineEvent[];
   dispatch: (action: GitAction) => EngineEvent[];
-  reset: () => void;
+  reset: (seed?: (s: RepoState) => RepoState) => void;
 }
 
 const freshRepo = (): RepoState => reduce(initialState(), { cmd: 'init' }).state;
@@ -26,10 +26,11 @@ export function useRepo(seed?: (s: RepoState) => RepoState): RepoApi {
     return r.events;
   }, []);
 
-  const reset = useCallback(() => {
-    const fresh = freshRepo();
-    ref.current = fresh;
-    setState(fresh);
+  const reset = useCallback((seed?: (s: RepoState) => RepoState) => {
+    const base = freshRepo();
+    const next = seed ? seed(base) : base;
+    ref.current = next;
+    setState(next);
     setLastEvents([]);
   }, []);
 
