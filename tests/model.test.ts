@@ -246,6 +246,46 @@ describe('model', () => {
     expect(headCommit(revived)?.label).toBe('Özellik 1')
   })
 
+  // --- name reuse after merge (old commits stay under the old name) ---
+
+  const reusedDeneme = (): ModelState => {
+    let s = createBranch(seeded(), 'deneme')
+    s = commit(aiImprove(s), 'Eski deneme işi')
+    s = mergeBranch(s) // old 'deneme' commit survives in history
+    s = commit(aiImprove(s), 'Main devam') // main moves past the merge
+    return createBranch(s, 'deneme') // same name, new lifetime, empty
+  }
+
+  it('switchBranch to a reused name lands on its fork, not the stale merged commit', () => {
+    let s = reusedDeneme()
+    const forkId = s.branches[0].forkId
+    s = switchBranch(s, 'main')
+    s = switchBranch(s, 'deneme')
+    expect(s.headId).toBe(forkId)
+    expect(headCommit(s)?.label).toBe('Main devam')
+  })
+
+  it('commit on a reused name chains from the fork, not the stale merged commit', () => {
+    let s = reusedDeneme()
+    const forkId = s.branches[0].forkId
+    s = switchBranch(s, 'main')
+    s = switchBranch(s, 'deneme')
+    s = commit(aiImprove(s), 'Yeni deneme işi')
+    expect(headCommit(s)?.parentId).toBe(forkId)
+    // the old merged commit is untouched history, not part of the new branch
+    expect(branchCommits(s, 'deneme').map((c) => c.label)).toEqual(['Yeni deneme işi'])
+  })
+
+  it('restoreFromCloud drops an empty reused-name branch even if the old lifetime was pushed', () => {
+    let s = createBranch(seeded(), 'deneme')
+    s = push(commit(aiImprove(s), 'Eski deneme işi')) // old lifetime pushed
+    s = push(mergeBranch(s))
+    s = createBranch(s, 'deneme') // new empty lifetime, nothing pushed
+    const revived = restoreFromCloud(laptopDie(s))
+    expect(revived.branches).toEqual([])
+    expect(revived.currentBranch).toBe('main')
+  })
+
   it('branchCommits returns only the live arc of a branch, and all main commits for "main"', () => {
     let s = createBranch(seeded(), 'a')
     s = commit(aiImprove(s), 'A1')

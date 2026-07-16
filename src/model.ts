@@ -66,10 +66,12 @@ export function headCommit(s: ModelState): Commit | null {
   return find(s, s.headId)
 }
 
-// Last commit made on `name`; for an active branch with no commits yet, its
-// fork commit; null when neither exists.
+// Last commit of `name`'s CURRENT lifetime (a merged branch leaves its old
+// commits behind under the same name — those must not count when the name is
+// reused); for an active branch with no commits yet, its fork commit; null
+// when neither exists.
 export function tip(s: ModelState, name: string): Commit | null {
-  const own = s.commits.filter((c) => c.branch === name)
+  const own = branchCommits(s, name)
   if (own.length) return own[own.length - 1]
   const branch = s.branches.find((b) => b.name === name)
   return branch ? find(s, branch.forkId) : null
@@ -287,7 +289,10 @@ export function laptopDie(s: ModelState): ModelState {
 export function restoreFromCloud(s: ModelState): ModelState {
   if (!s.laptopDead) return s
   const kept = s.commits.filter((c) => s.pushedIds.includes(c.id))
-  const keptBranches = s.branches.filter((b) => kept.some((c) => c.branch === b.name))
+  // A branch survives only if its CURRENT lifetime has a pushed commit —
+  // pushed commits left behind by an older merged branch of the same name
+  // don't count.
+  const keptBranches = s.branches.filter((b) => branchCommits(s, b.name).some((c) => s.pushedIds.includes(c.id)))
   const mainKept = kept.filter((c) => c.branch === 'main')
   const t = mainKept.length ? mainKept[mainKept.length - 1] : null
   return {

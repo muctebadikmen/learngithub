@@ -205,8 +205,11 @@ function BranchPills({ state, slot, cloud }: { state: ModelState; slot: Slot; cl
     )
   }
 
+  const shown = new Set(commits.map((c) => c.id))
   const branchPill = (b: Branch) => {
-    const own = commits.filter((c) => c.branch === b.name)
+    // Scope to the branch's CURRENT lifetime — a reused name must not pin its
+    // pill to a commit left behind by an older merged branch of the same name.
+    const own = branchCommits(state, b.name).filter((c) => shown.has(c.id))
     if (own.length) return pillAt(slot.px(own[0].x) - 10, b.laneIdx, b.name, state.currentBranch === b.name)
     if (cloud) return null // nothing pushed for this branch yet
     const fork = state.commits.find((c) => c.id === b.forkId)
