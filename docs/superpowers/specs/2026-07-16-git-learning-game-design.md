@@ -1,7 +1,8 @@
 # Git Learning Game — Design Specification
 
 **Date:** 2026-07-16
-**Status:** v3 — rewritten against four research reports. Awaiting review.
+**Status:** v4 — v3 revised against a fifth research report (learning science) and an adversarial
+red-team review (110 agents, 19 verified findings — all applied). Ready for implementation planning.
 **Deployment target:** Netlify (static, no backend)
 
 ---
@@ -26,17 +27,20 @@ seriously (§2).
 the physical world, so no intuition transfers and a learner cannot guess. Git *requires* an explicitly
 constructed mental model.
 
-**Goal B — calibrated confidence.** Church, Söderberg & Elango (PPIG 2014) studied Google and Autodesk
-engineers and found something the model-transfer thesis cannot explain: **they understood git and were
-still afraid of it.** They re-cloned entire repositories to recover. They made manual backups before
-running commands. One asked a colleague to run an operation because *"it scares the [elided] out of
-me."* The researchers explicitly ruled out conceptual gaps — these were expert abstraction workers who
-could articulate the model correctly.
+**Goal B — calibrated confidence.** Church, Söderberg & Elango (PPIG 2014) observed Google and
+Autodesk engineers: **they understood git and were still afraid of it.** They re-cloned entire
+repositories to recover. They made manual backups before running commands. One asked a colleague to
+run an operation because *"it scares the [elided] out of me."* The researchers ruled out conceptual
+gaps — these were expert abstraction workers who could articulate the model correctly. *Scale
+honestly: this is a small qualitative work-in-progress — five formal interviews plus observation.
+Suggestive, not demonstrative.*
 
-**Understanding is necessary and demonstrably not sufficient.** Confidence is a separate axis, built
-only by safe, reversible practice on consequences. This is the tension between the two strongest
-papers in the field, it is unresolved in the literature, and this product has to serve both sides of
-it. It is a design constraint, not a compromise.
+**The two findings are complementary, not conflicting** — Church cites Perez De Rosso approvingly
+("not only… but also"). The model is necessary (PDR); for practitioners who already have it, it
+appears not to be sufficient (Church). The genuinely open question: **does the confidence deficit
+precede the model or follow it?** Nobody knows. That question — not a manufactured tension — is why
+§11.1 measures fear directly: no git tool ever has, and it is the cheapest real contribution this
+product can make. Confidence is built only by safe, reversible practice on consequences.
 
 ---
 
@@ -64,7 +68,9 @@ decoration and does not ship.
 
 **Python Tutor: 25 million users, 500 million visualisations, 10,000+ schools, and no evidence it
 teaches anyone anything.** No RCT exists. The best independent study (Karnalim & Ayub 2018, N=56,
-14 weeks) found nothing in 12 weeks and **one week where it made students significantly worse**. Its
+14 weeks): **twelve null weeks, one significantly negative, one significantly positive (+8.86)** —
+noise around zero, after a decade and 25 million users. *(An earlier draft of this spec silently
+dropped the positive week — inside the section arguing for honesty. Restored.)* Its
 creator has stated this in print twice — 2013: *"numbers and anecdotes are no substitutes for a
 rigorous evaluation of efficacy"*; 2021: *"this paper does not present a user evaluation."* In 2013 he
 correctly diagnosed why — his tool sits at passive viewing, which the literature already said was the
@@ -82,17 +88,29 @@ Cited honestly, with the limits that usually get dropped.
 
 | Finding | Evidence |
 |---|---|
-| **Self-explanation** — making the learner *generate* an explanation | **g = 0.55**, k=69, **N=5,917** (Bisra et al. 2018, meta-analysis). Fail-safe N = 6,028. **Computer science: g = 0.76** (k=9). **19 of 20 moderators didn't matter — the effect is hard to break.** |
+| **Self-explanation** — making the learner *generate* an explanation | **g = 0.55**, k=69, **N=5,917** (Bisra et al. 2018, meta-analysis). **Computer science: g = 0.76** (k=9). 17 of 20 moderators showed no detectable difference; the three that did: comparison treatment, region, and **the type of explanation elicited** — the one §7.1 builds on. |
+| **The *type* of explanation elicited is the moderator that holds** (QB p<.001; the one surviving post-hoc) | **Conceptualise** — *define or elaborate a named concept* — **g=0.873**, k=13, N=1,678, CI [.563, 1.183]; significantly better than metacognitive prompts (z=3.28, p=.001). Git is almost nothing *but* named concepts: the index, HEAD, reachability, the merge base, `origin/main`. |
 | **Guided beats free self-explanation, ~2×** | RCT, N=88, code comprehension (Tamang et al., SIGCSE 2021): control 0.047 · free SE **0.30** · **Socratic 0.59**. F(2,85)=13.5, p=.001, η²=0.24. All pairwise contrasts significant. |
-| **Feedback that names the misconception** | BTRecurTutor: exercises alone **d=0.5**; exercises + misconception-naming feedback **d=1.1**; the gap between them is itself **d=0.6**, p=.0001. |
-| **Generation format matters enormously** | Fill-in-the-blank **g=0.895** · conceptualise **g=0.873** · interrogative **g=0.559** (k=36, the workhorse). |
+| **Refutation works on *ontological* misconceptions** | Refutation texts: **g=0.41**, 44 comparisons, n=3,869 (Schroeder & Kucera 2022). Mechanism is co-activation — **naming the wrong idea is what does the work**. Git's two biggest misconceptions (commit=diff, branch=folder) are this species (§8.1). |
+| **Retrieval practice and spacing** — the only two techniques rated HIGH utility in Dunlosky et al. 2013 | Testing effect: at 5 minutes re-reading *beats* retrieval (**d=0.52 in the wrong direction**); at ≥1 week retrieval wins decisively (Roediger & Karpicke 2006). Spacing gap ≈ 10–20% of the desired retention interval. *Self-explanation is rated only MODERATE in the same review.* |
+| **Attempting generation helps even when the attempt fails** | Generation effect **d=0.40** (Bertsch et al. 2007, 445 effect sizes). Kornell, Hays & Bjork 2009: six experiments engineered so retrieval would fail — **failed attempts still enhanced learning**. The attempt, not the success, does the work. |
 
 ### 3.2 Moderate — use, don't lean on
 
 - **Subgoal labelling** (Margulieux et al. 2020, classroom, N=265): quizzes **d=0.44** (p=.001) but
-  **exams d=0.20, p=.24 — not significant**. The real effect is **withdrawal and failure roughly
-  halved (44% → 25% at-risk)** and **lower variance**. *Subgoals compress the left tail; they do not
-  lift the mean.* See §11.
+  **exams d=0.20, p=.24 — not significant**. The real effect: **at-risk students (exam average ≤70%
+  among completers) roughly halved, 44% → 25%; students missing exams halved, 20% → 10%** — the
+  authors' own conclusion is that subgoals roughly halve withdrawal and failure. Variance dropped.
+  *Subgoals compress the left tail; they do not lift the mean.* See §11.
+- **Feedback that names the misconception** (BTRecurTutor): exercises alone **d=0.5**; with
+  misconception-naming feedback **d=1.1**; the gap **d=0.6**, p=.0001. *Quasi-experimental — controls
+  2011–12 (n=164) vs treatments 2016 (n=368), non-randomised, confounded with a platform change the
+  paper itself discloses. The direction agrees with the refutation literature (§3.1); the magnitude
+  is soft. An earlier draft billed this as "the largest intervention effect in the corpus" from §3.1 —
+  it doesn't belong above an actual RCT.*
+- **Completion problems** (van Merriënboer 1990, programming, N≈57): completing partial programs beat
+  writing from scratch on construction skill **and attrition**. Small and old, but it is the direct
+  evidence for §7.2's mechanic, honestly sized.
 - **Scaffolding** is the only game augmentation whose confidence interval clears zero (g=0.41).
 - **Multiple sessions** (g=0.44) beat single sessions (g=0.08, n.s.).
 - **Schematic visuals g=0.48; realistic visuals −0.01.** This vindicates the clean, technical art
@@ -106,6 +124,8 @@ Cited honestly, with the limits that usually get dropped.
 - **Prediction alone.** Tamang's prediction-only control gained **0.047** — nothing.
 - **Multiple-choice self-explanation: g = 0.24, not significant.** **Metacognitive prompts: g = 0.19,
   not significant.** *An earlier draft of this spec specified exactly the multiple-choice cell.*
+  (Multiple choice returns in §7.3 as a *diagnostic* instrument — a different job with different
+  evidence.)
 - **"Reveal the answer" buttons destroy the effect** (Schworm & Renkl 2006): learners given
   self-explanation prompts *only* outperformed those also given explanations on demand.
 - **Games as standalone**: d = −0.12. **As a supplement: d = 0.51.** (Sitzmann 2011.) Matched on
@@ -119,9 +139,10 @@ Cited honestly, with the limits that usually get dropped.
 - **Hundhausen et al. is not a meta-analysis.** The authors explicitly declined to pool: *"we
   considered using statistical meta-analytic techniques… but ultimately decided against them."* It is
   a vote-count review, 11–13 against. **No pooled effect size for program visualisation exists.**
-- **The Naps engagement taxonomy is not a ladder.** The authors: *"we do not consider this to be an
-  ordinal scale. The relationships among these six forms of engagement do not form a simple
-  hierarchical relationship."* An earlier draft of this spec made "levels 4–6" the primary
+- **The Naps engagement taxonomy is not a ladder.** The authors do not treat it as an ordinal scale:
+  *"The relationships among these six forms of engagement do not form a simple hierarchical
+  relationship."* (Only that sentence is verified verbatim — an earlier draft quoted a secondary
+  source's paraphrase as if it were Naps.) An earlier draft of this spec made "levels 4–6" the primary
   differentiator on exactly that misreading. When *constructing vs. viewing* was tested directly
   (Hundhausen & Douglas 2000), **there was no significant difference.** JFLAP sits at the
   constructing level and its only controlled comparison was **null**.
@@ -130,9 +151,18 @@ Cited honestly, with the limits that usually get dropped.
 - **The newest, best-powered test is a null** — Harders & Ebersbach (2026), preregistered, N=208,
   active control: no self-explanation effect **on factual knowledge** (a category where Bisra already
   predicts weakness).
+- **Inducement format is not a lever.** Bisra's format moderator reached QB p=.048, but *"post-hoc
+  tests found no significant differences among them."* Fill-in-the-blank's famous **g=0.895 is k=2,
+  N=279** — two studies — and her inclusion criteria exclude *"choosing a rule or principle without
+  providing an explanation,"* which is exactly what picking a flag from a list is. **An earlier draft
+  of this spec built the command composer on that cell, splicing two orthogonal moderators (format ×
+  type elicited) into one false menu. §7.2 no longer claims it.**
 - **Time-on-task confounds the whole field.** Sorva's treatment group spent **28.3 min vs 15.5 min**
-  (1.8×, p≈.000) and he volunteers that this *"explains in part"* his one significant result. Bisra:
-  took-longer g=0.72 vs equal-time g=0.41; **47 of 69 studies never reported duration.** See §11.2.
+  (1.8×, p≈.000) and he volunteers that this *"explains in part"* his one significant result. Bisra's
+  duration moderator was **not statistically detectable** (p=.255): took-longer g=0.72 vs equal-time
+  g=0.41 (k=5, N=291) — and **47 of 69 studies never reported duration**, so the field cannot rule the
+  confound out either way. The strong true point: in the five studies that equalised time, the effect
+  survived at g=0.41. See §11.2.
 
 ---
 
@@ -146,8 +176,9 @@ Consequences that are design requirements, not marketing:
 - **Per-topic entry points.** An instructor assigns "topics 3–4 before Thursday."
 - **Resumable and multi-session** (g=0.44 vs 0.08 for single-session).
 - **Anyone can still land on it cold** and work through from the start.
-- It **pushes learners onto their own real repository**, explicitly. It does not pretend to replace
-  practice.
+- It **pushes learners onto their own real repository**: every topic ends with a **real-repo hand-off
+  card** — copy-pasteable commands to try what was just learned in a real repository (a field in the
+  level schema, §10.3, not a marketing sentence). It does not pretend to replace practice.
 
 ---
 
@@ -159,7 +190,7 @@ Consequences that are design requirements, not marketing:
 |---|---|---|
 | Total beginner | No terminal, no git | Topics 1–5 |
 | CS student / junior | Codes, copy-pastes git, no model | All topics; scaffolding fades fast |
-| Non-developer collaborator | Needs to follow branches and PRs | Topics 1, 4, 9 |
+| Non-developer collaborator | Needs to follow branches and PRs | Topics 1, 2, 9 |
 | **Instructor** | Teaching a course | Assigns topics; needs entry points |
 
 **Scaffolding must fade on *demonstrated competence*, not on level number.** The expertise-reversal
@@ -169,7 +200,9 @@ competence to fade against.
 ### 5.2 In scope
 Git core plus GitHub collaboration: commits, staging, branches, HEAD, reachability, reflog, merge,
 conflicts, reset, revert, restore, rebase, interactive rebase, cherry-pick, remotes, clone, push,
-fetch, pull, fork, pull requests, review, merge strategies.
+fetch, pull, fork, pull requests, review, merge strategies. Plus **`fsck --lost-found`, scoped to
+exactly one exercise, read-only** — it exists because the Topic 4 trap (§8.4) destroys a staged
+snapshot that reflog cannot see, and the spine's promise (§8.3) requires the rescue to exist in-game.
 
 ### 5.3 Out of scope (v1)
 Actions/CI, Projects, Releases, Issues, protected branches, CODEOWNERS, submodules, LFS, hooks,
@@ -193,34 +226,54 @@ This section is the product. §2 governs it.
 ### 7.1 The three-beat exercise
 
 **Beat 1 — Anticipate.** Before anything animates: *"Where will `main` be after this, and why?"*
-Prediction **and** reason, fused into one act. This is not the engagement ladder; it is here because:
-- **Prediction alone is worth ~nothing** (Tamang: 0.047). Prediction *plus* reason is
-  "anticipatory self-explanation," **the highest cell in Bisra's table (g=1.37)** — a k=1 estimate the
-  authors say can be discounted, but it is also **exactly what Hundhausen independently identified**
-  as one of the few AV activities that worked, and **exactly the condition whose removal made Gurka's
-  replication of Byrne collapse to null.** Three literatures, arrived at separately, pointing at the
-  same mechanism. That convergence is the argument, not the k=1 effect size.
-- **It surfaces fragmentary intuition and makes it fail visibly** — which §8.1 explains is the only
-  thing that works on git's misconceptions.
+Prediction **and** reason, fused into one act. The honest evidence base:
+- **Prediction alone is worth ~nothing** (Tamang: 0.047). Prediction with reason, Socratically
+  guided, is the 0.59 arm of the same RCT.
+- **The attempt works even when it fails** — generation effect d=0.40; Kornell's failure-engineered
+  experiments (§3.1). A wrong prediction is therefore a feature twice over: a learning event *and* a
+  diagnostic data point (§7.3).
+- **It surfaces fragmentary intuition and makes it fail visibly** — §8.1 explains why that is the
+  right tool for git's intuition-fragment misconceptions.
+- *An earlier draft claimed "three literatures converge" here. False — Hundhausen's prediction
+  endorsement cites only Byrne, and Gurka is a replication of Byrne: one literature, counted three
+  times. The AV field's one clean prediction contrast (Jarc) was null. Beat 1 is a **declared design
+  bet** — bet 4 at the gate (§15.1).*
 
 **Beat 2 — Act.** Manipulate the model to reach the goal. **The win condition must require the
 concept, never a gesture** (§2).
 
-**Beat 3 — Explain, guided.** Not multiple choice (g=0.24, n.s.). **Fill-in-the-blank (g=0.895)** and
-short constructed responses, Socratic-guided (0.59 vs 0.30 for free explanation). **There is no
-"reveal answer" button** — it destroys the effect.
+**Beat 3 — Explain, guided.** **Conceptualise-type prompts** — *define or elaborate a named concept*,
+in question form: *"In your own words: what is the index holding right now, and why did the staged
+version land in the commit?"* This is the one self-explanation moderator that holds (g=0.873, k=13,
+§3.1), and git is unusually rich in named concepts to point it at. Socratic guidance over free
+explanation (0.59 vs 0.30). Short constructed responses, graded by keyword/structure matching — no
+backend needed. **No multiple-choice explanations** (g=0.24, n.s.) and **no "reveal answer" button**
+— it destroys the effect (Schworm & Renkl).
 
 ### 7.2 The command composer
 
 **Replaces the read-only mirror**, which was passive viewing — Python Tutor's exact failure mode.
+That rejection stands on its own.
 
 Commands appear with holes: `git reset --[?] [?]`. The learner **completes** them from valid choices.
-This is fill-in-the-blank — the strongest legitimate generation format (g=0.895), gradeable with no
-backend, and a **faded worked example**: the scaffold *is* the thing being taught, so it dissolves as
-competence grows. Oh My Git!'s typed-hole cards are the existing proof this works as a game mechanic.
+Holes are **typed — flag, path, ref, or commit** — so `git commit [path]` and `git push [remote]
+[ref]` are expressible, not just flag picks.
 
-**The learner never types from scratch in v1.** The composer fades to a real prompt in expert mode
-(§16) — the fade is now a designed path rather than a rewrite.
+**What this is, honestly: a faded worked example — not self-explanation.** An earlier draft justified
+the composer with Bisra's fill-in-the-blank cell (g=0.895). Wrong twice: the cell is k=2, and her
+criteria exclude choice-from-a-list without an explanation — which is what this is (§3.4). The real
+warrant:
+- **The completion-problem effect** (van Merriënboer 1990, §3.2): a partial solution forces study of
+  the worked part; completion beat writing-from-scratch on construction skill *and* attrition.
+- **Backward fading** (Renkl & Atkinson): full worked command first, last hole opened first, one more
+  hole per exercise until the learner assembles whole commands — a designed path that ends at expert
+  mode (§16), not a rewrite.
+- **Scaffolding** — the one game augmentation whose CI clears zero (g=0.41, §3.2).
+
+Oh My Git!'s typed-hole cards are the existing proof this works as a game mechanic. The
+*self-explanation* work happens in Beat 3, where that evidence actually applies.
+
+**The learner never types from scratch in v1.**
 
 ### 7.3 Misconception diagnosis, and the concept inventory
 
@@ -228,32 +281,65 @@ Every tool in the landscape grades with a binary predicate — LGB compares tree
 Githug returns booleans. Win or lose, no explanation of *why*.
 
 We declare **misconception traps**: predicates matching known-wrong end states, each mapped to
-feedback that **names the misconception**. This is the d=0.5 → **d=1.1** finding, the largest
-intervention effect in the corpus.
+feedback that **names the misconception** — refutation, applied where refutation works (§8.1;
+g=0.41 on 44 comparisons, with BTRecurTutor's d=0.5 → d=1.1 as softer, domain-adjacent support,
+§3.2).
+
+**Feedback is built from the learner's own attempt, never canned.** The trap message quotes what the
+learner predicted in Beat 1 and what their end state actually is, and bridges from there. In the
+productive-failure literature, *"instruction builds on student solutions"* is the single strongest
+design predictor: **g=0.56 when met vs 0.20 when not** — a canned explainer after a failure captures
+almost none of the effect.
 
 **And it doubles as an instrument.** There is **no validated version-control concept inventory** —
-confirmed gap. Our anticipate-beat data would be the first. We need it anyway: **expertise reversal
-says scaffolding must fade on measured competence, and you cannot measure what you don't instrument.**
+confirmed gap. Anticipate-beat questions are built the way the Force Concept Inventory was: **multiple
+choice in which every distractor is a named, documented misconception** (§8.2's poll data supplies
+them). Multiple choice is null for *explanation* (g=0.24, §3.3), but it is the basis of the most
+successful diagnostic instrument in physics education — diagnosis and explanation are different jobs.
+We need the instrument anyway: **expertise reversal says scaffolding must fade on measured competence,
+and you cannot measure what you don't instrument.**
 
 ### 7.4 Subgoal labels
 Every multi-step procedure is presented with labelled subgoals. Cheap, and the evidence is specific:
-it won't lift the mean, it **halves failure and withdrawal** (§11).
+it won't lift the mean; the authors' conclusion is that it **roughly halves failure and withdrawal**
+(at-risk 44%→25%, exam-missing 20%→10% — §3.2, §11).
+
+### 7.5 Retrieval and spacing
+
+The only two techniques rated HIGH utility in Dunlosky's ten-technique review, and v3 omitted both.
+- **Every topic opens with a 2–3 item retrieval warm-up** over earlier topics, answered from memory
+  before the model is back on screen. Failed retrieval is fine — the attempt still works (§3.1).
+- **A review queue re-surfaces old exercises** at roughly 10–20% of the desired retention interval.
+  For a course-supplement cadence (§4) that means days apart, which multi-session resumability
+  already supports.
+- This is also why the gate measures at **≥ one week** (§11.1): at 5 minutes, re-reading *beats*
+  retrieval — an immediate post-test measures the wrong sign.
 
 ---
 
 ## 8. Curriculum
 
-### 8.1 Do not build refutation
+### 8.1 Two kinds of wrong, two different tools
 
 Julia Evans polled ~2,500 developers: **50% said a commit is a diff, 42% said a snapshot** — and
 people held **both beliefs simultaneously**: *"in my mind a commit is a diff, but I think it's
-actually implemented as a snapshot."* That is fragmentary intuition (diSessa's "knowledge in pieces"),
-not a stable wrong theory.
+actually implemented as a snapshot."*
 
-**So "this exercise kills misconception X" is the wrong frame** — you cannot refute a belief the
-learner doesn't reliably hold. Refutation works in physics because the misconceptions there are
-stable; git's are not. **Instead: engineer moments where the fragmentary intuition makes a prediction
-that visibly fails.** That is Beat 1's real job.
+The misconception literature splits wrongness into two species, and the split decides our mechanics:
+
+- **Ontological miscategorisation** — the learner has the wrong *kind* of thing. *"A branch is a
+  folder containing commits." "A commit is a diff."* Git's two biggest misconceptions are exactly this
+  species, and for it **refutation works: name the wrong idea explicitly, then show the right one**
+  (g=0.41, 44 comparisons, n=3,869 — §3.1). The mechanism is co-activation: naming the wrong belief is
+  what does the work. §7.3's trap feedback is this tool.
+- **Misapplied intuition (p-prims, diSessa's "knowledge in pieces")** — a fragment that is right
+  elsewhere, misfiring here: *"later things sit on top," "saving overwrites."* Fragments cannot be
+  refuted — there is no stable belief to attack. **Engineer moments where the fragment makes a
+  prediction that visibly fails, then bridge from where the intuition is right.** That is Beat 1's
+  job.
+
+*(v3 said "do not build refutation." That was wrong — and it contradicted §7.3, whose traps **are**
+refutation. The species split resolves both errors.)*
 
 ### 8.2 The evidence base for what's hard
 
@@ -275,16 +361,21 @@ it.* And *branch and HEAD are worse than assumed* — 15% and 25% correct.
 ### 8.3 Undo is the spine
 
 Three independent methods agree, and it isn't close:
-- **17 of the top 50 Stack Overflow git questions are undo/recovery — 44% of 210M views.**
+- **17 of the top 50 Stack Overflow git questions (by votes) are undo/recovery — 44% of 210M views**
+  (counting history-editing rescues — amend, squash, moving commits — as recovery; the figure is
+  sensitive to that rule, so it is stated).
 - The most-viewed git question ever: *"How do I undo the most recent local commits?"* — **16.7M views**.
-- A study of **80,370** git questions: the five most-viewed commands are `revert`, `reflog`, `stash`,
-  `clean`, `reset` — **all recovery**.
+- A study of **80,370** git questions: of the five most-viewed commands (`revert`, `reflog`, `stash`,
+  `clean`, `reset`), **four are recovery** — the paper itself notes `git clean` is the exception.
 - **8 of 9 "Oh Shit, Git!?!" entries** are recovery.
 - Church: the emergent experience is **fear**; professionals re-clone to recover.
 
-**So recovery is not topic 5 of 8. It is topic 3 of 9, and a permanent guarantee running through every
-later topic** — every topic has an undo path, and reflog is always reachable. This serves Goal B (§1.1)
-directly, and **nobody teaches git this way.**
+**So recovery is not topic 5 of 8. It is topic 3 of 9, and a standing guarantee through every later
+topic**: every mistake the game can produce has an in-game undo path, and reflog is always reachable.
+The guarantee has **exactly two real-git exceptions — content never committed, and a staged snapshot
+consumed by `git commit <file>`** — and the curriculum teaches both *as the boundary* (Topics 3–4)
+instead of hiding them. A confidence tool must not train confidence at the precise spots where git
+actually destroys work. This serves Goal B (§1.1) directly, and **nobody teaches git this way.**
 
 ### 8.4 The topics
 
@@ -302,9 +393,13 @@ The three zones appear mechanically here; they are *understood* in topic 4.
 walked into on purpose. **Only 15% and 25% of developers get these right — this topic is doing more
 work than its size suggests.**
 
-**Topic 3 — Nothing is ever lost** *(4)* — **THE SPINE**
+**Topic 3 — Every commit is recoverable** *(5)* — **THE SPINE**
 Moving a label doesn't delete a commit. Unreachable ≠ gone. **Reflog, early.** Recover from a
 catastrophic reset before you have ever been asked to run one. Deliberate disasters, then rescue.
+**Then the boundary, as its own exercise**: an uncommitted edit, a `reset --hard` — predict whether
+reflog can bring it back. It cannot. **Git protects what you commit; it never saw what you didn't.**
+The one place intuition should fail *toward* caution. *(v3 titled this "Nothing is ever lost" — false
+for exactly the two cases that destroy real work. Retitled to the claim that is true.)*
 *This is the confidence axis (§1.1 Goal B) and the #1 documented problem, addressed together.*
 
 **Topic 4 — Files and the index** *(6)*
@@ -314,8 +409,10 @@ complexity"*; Hamano stated in **2006** that the three-level model is a prerequi
 hid the index from beginners.
 - Why staging exists: two unrelated changes → two clean commits
 - **The index holds a snapshot, not a pointer**: stage, edit again, commit — the **staged** version lands
-- **`git commit <file>` commits the *working* version, bypassing what you staged** — the documented
-  propriety misfit, walked into as a trap
+- **`git commit <file>` commits the *working* version and silently *consumes* what you staged** — the
+  staged snapshot isn't bypassed, it is destroyed, and reflog cannot see it. Walked into as a trap,
+  **then rescued with `git fsck --lost-found`** (scoped for exactly this exercise, §5.2) — completing
+  the safety story: *reflog finds lost commits; fsck finds lost blobs*
 - Tracked ≠ staged ≠ committed; `.gitignore`
 - Amend: the old commit doesn't change; a new one is born and the label slides
 
@@ -355,7 +452,8 @@ Fork; **a PR is a request to move a label**; review with follow-up commits; **me
 rebase-merge as three graph shapes side by side** (taught well nowhere); `main` moving under an open
 PR; syncing a fork.
 
-**43 exercises.** Vocabulary throughout: **`switch`/`restore` first; `checkout` named once as legacy.**
+**44 exercises.** Every topic closes with a **real-repo hand-off card** (§4, §10.3). Vocabulary
+throughout: **`switch`/`restore` first; `checkout` named once as legacy.**
 This is settled by git's own maintainer — commit `d787d31`: *"'git checkout' doing too many things is
 a source of confusion for many users (and it even bites old timers sometimes)."*
 
@@ -377,6 +475,11 @@ required for §12, free because both dispatch the same engine action.
 
 **Constrained affordances per exercise** (Oh My Git!'s `cards` idea): each exercise declares which
 operations exist. Scaffolding, and it makes Beat 1 answerable.
+
+**Redundancy discipline:** the same information is never simultaneously narrated *and* labelled —
+redundant dual presentation reliably hurts (effects up to d≈1.3 against). Animations are short,
+learner-paced segments, informationally equivalent to their static end state — animation's win over
+statics is small and conditional (g≈0.23–0.37), and only under those conditions.
 
 ---
 
@@ -406,9 +509,11 @@ No I/O, no clock, no randomness, no UI knowledge. Buys undo/rewind, event-driven
 checking, deterministic simulated collaborators, and a fully testable core.
 
 ### 10.3 Levels are data
-Initial state · objective + **subgoal labels** · **anticipate prompt** · **explain prompt (fill-in
-holes, no reveal)** · goal predicate · allowed actions · progressive hints (Githug's pattern — the only
-tool with it) · **misconception traps** · collaborator script.
+Initial state · objective + **subgoal labels** · **anticipate prompt (FCI-style distractors, §7.3)** ·
+**explain prompt (conceptualise question, no reveal)** · goal predicate · allowed actions ·
+progressive hints (Githug's pattern — the only tool with it) · **misconception traps (feedback
+templated from the learner's Beat 1 answer)** · collaborator script · **real-repo hand-off** (per
+topic: copy-pasteable commands to try the concept in a real repository — §4's promise, delivered).
 
 **Goal predicates assert over repo state, never graph geometry, and are hash-agnostic** — rebase and
 cherry-pick legitimately produce different hashes.
@@ -432,10 +537,14 @@ neither exposes a stability constraint. **In a teaching tool the animation is th
 that moves commits the learner didn't touch asserts something false. This is a correctness objection,
 not a performance one.
 
-Row = **topological order** (Kahn's); column = **sticky per-branch lane**, identity persisted across
-states. Stability by construction. **SVG, not canvas** — free hit-testing, theming, and real
-accessibility. Ghost nodes for rebase originals and unreachable commits: how "nothing is destroyed" is
-*shown* rather than claimed (§8.3).
+Row = **topological order** (Kahn's algorithm, **ties broken by commit insertion order** — never by
+hash, which §10.1 makes content-derived, and never by iteration order); column = **sticky per-branch
+lane**, identity persisted across states. Stability is the *sole* reason dagre/ELK were rejected, so
+it is a testable invariant, not an adjective: **for any state S and single action a, layout(reduce(S,
+a)) may differ from layout(S) only at nodes the action created or re-pointed.** A property test
+enforces this in step 2 (§15). **SVG, not canvas** — free hit-testing, theming, and real
+accessibility. Ghost nodes for rebase originals and unreachable commits: how "every commit is
+recoverable" is *shown* rather than claimed (§8.3).
 
 ---
 
@@ -451,12 +560,16 @@ product whose whole purpose is people who currently bounce off git, **that is th
 - Anticipate-beat accuracy over time (the concept inventory, §7.3)
 - Whether a genuine non-git-knower finishes topics 1–4 unaided
 - **Self-reported fear before/after** (Goal B, §1.1) — Church's axis, which no git tool has measured
+- **Retention is measured at a delay of ≥ one week, never immediately.** At 5 minutes, re-reading
+  beats retrieval (d=0.52 in the wrong direction, Roediger & Karpicke 2006) — an immediate post-test
+  measures the wrong sign.
 
 ### 11.2 The honesty clause
 
 **Time-on-task confounds this entire literature and it will confound us.** Sorva's group spent 1.8× as
-long and he credits that for part of his one significant result. Bisra: took-longer g=0.72 vs
-equal-time g=0.41.
+long and he credits that for part of his one significant result. Bisra's duration moderator is not
+statistically detectable (p=.255, k=5) and 47 of 69 studies never reported duration — the field
+cannot rule the confound out, so we must.
 
 **If our learners do better only because they spent longer, we have not built a better teacher — we
 have built a more attractive one, and the alternative could have bought that attention more cheaply.**
@@ -469,15 +582,25 @@ high-entertainment games scored numerically *lower*.
 
 ## 12. Accessibility
 
-**A differentiator, not compliance.** LGB [issue #960](https://github.com/pcottle/learnGitBranching/issues/960)
+**A commitment stated precisely — not a boast.** LGB [issue #960](https://github.com/pcottle/learnGitBranching/issues/960)
 — the graph is unreachable by screen readers, and graph changes are unannounced — has been open since
-2022. **LGB's entire pedagogy is invisible to blind learners.** An accessible git visualiser would be
-the only one.
+2022. **LGB's entire pedagogy is invisible to blind learners.** *(v3 claimed we would be "the only
+accessible git visualiser." Withdrawn: the research is sobering — navigable text representations of
+tree structures score poorly on structural-verification tasks, and the best-performing alternative,
+tactile, is unreachable in a static web app. We commit to the mechanics below and **test them with a
+screen-reader user at the gate**, §15.1.)*
 
-Keyboard equivalent for every drag (§9) · colour never the only channel · an ordered, navigable text
-representation of the graph · **an ARIA live region announcing state changes**, which falls out of
-§10.2's event stream · `prefers-reduced-motion` · WCAG AA in the dark theme. **Note WCAG 2.2 §2.5.7
-(Dragging Movements) requires the non-drag path** — this is a requirement, not a nicety.
+Three separable problems, spec'd separately:
+- **Structure** — the text graph presents the same topological order and lane identity as the SVG
+  (§10.5): the two views assert the same thing.
+- **Navigation** — standard ARIA tree/treegrid patterns, not bespoke commands: users apply
+  ARIA-familiar commands readily and struggle with invented ones.
+- **Change description** — **an ARIA live region announcing state changes** in plain language,
+  generated from §10.2's event stream.
+
+Plus: keyboard equivalent for every drag (§9) — **WCAG 2.2 §2.5.7 (Dragging Movements) makes the
+non-drag path a requirement, not a nicety** · colour never the only channel · `prefers-reduced-motion`
+· WCAG AA in the dark theme.
 
 ---
 
@@ -515,6 +638,9 @@ with no English parses *"commit'e"* is untested, and tier 1 is half our audience
 | **The generation tasks feel like homework and people quit** | **High** | Drop-off is the primary metric; scaffolding fades on measured competence (§7.3) |
 | Conflict UI (topic 6) is intrinsically hard | High | Prototype out of order, as a spike, before the slice |
 | We win only by buying time-on-task | High | §11.2 — record it, or the result is uninterpretable |
+| **Beat 1 (Anticipate) rests on thin direct evidence** | Medium | Declared bet 4 at the gate (§15.1); Tamang + the generation-effect literature, no git-specific result |
+| Screen-reader experience unproven | Medium | §12 narrowed to testable commitments; screen-reader user at the gate |
+| Redundancy / split-attention across four panels + prompts | Medium | §9 discipline: never narrate *and* label the same thing; short, learner-paced animation segments |
 | LGB [PR #1379](https://github.com/pcottle/learnGitBranching/pull/1379) closes the staging gap | Medium | Assumed. Differentiation is §7, undo-first, i18n and a11y — never staging alone. |
 | Engine larger than 4–6k lines | Medium | It's step 1, test-first; overrun surfaces immediately |
 | Turkish code-switching fails tier 1 | Medium | §13 open question; test at the gate |
@@ -529,9 +655,9 @@ with no English parses *"commit'e"* is untested, and tier 1 is half our audience
 | Step | Deliverable |
 |---|---|
 | 0 | Empty page live on Netlify |
-| 1 | **Engine, standalone, test-first** — objects, deterministic hashing, refs, HEAD, index, **reflog**, commit, branch, switch, reset |
-| 1b | **Differential harness**: same command sequences against **real `git` in Node**, assert our DAG matches. Real git in the test suite, never the runtime. |
-| 2 | Graph renderer — topological rows, sticky lanes, tags, HEAD, ghosts |
+| 1 | **Engine, standalone, test-first** — objects, deterministic hashing, refs, HEAD, index, **reflog**, commit, branch, switch, reset, dangling-object tracking (**fsck**) |
+| 1b | **Differential harness**: same command sequences against **real `git` in Node** — assert our DAG matches, **and index state + dangling objects where the exercise touches them** (the DAG alone would not catch `git commit <file>` implemented as "bypass" instead of "consume") |
+| 2 | Graph renderer — topological rows, sticky lanes, tags, HEAD, ghosts, **layout-stability property test (§10.5)** |
 | 3 | Event-driven animation |
 | 4 | Interaction — drag to stage, context menus, constrained affordances |
 | 5 | **Command composer** (§7.2) |
@@ -545,15 +671,18 @@ a slice that omits either tests nothing that matters.
 
 ### 15.1 The gate
 
-**Stop at step 9. Test with real people, including at least one who genuinely does not know git.**
-Record time-on-task (§11.2).
+**Stop at step 9. Test with real people, including at least one who genuinely does not know git and
+one screen-reader user (§12).** Record time-on-task (§11.2). **Retention is measured at ≥ one week**
+(§11.1).
 
-Three bets are on the table:
+Four bets are on the table:
 1. That the generation tasks teach (§2, §7) — *the product*
 2. That they don't feel like homework — *the drop-off risk*
 3. That Turkish code-switching works for tier 1 (§13)
+4. That the Anticipate beat earns its screen time (§7.1) — it rests on Tamang plus the general
+   generation-effect literature, not on any git-specific result
 
-All three are cheap now and ruinous after nine topics are built on top of them. Everything after step 9
+All four are cheap now and ruinous after nine topics are built on top of them. Everything after step 9
 is content production, which is fast once the machine works.
 
 **A named failure mode:** if the loop tests badly, §7 is wrong and the product needs rethinking —
@@ -597,10 +726,16 @@ University** built and evaluated CRSG — a browser-based serious game teaching 
 | Goals | Model **and** calibrated confidence | Model transfer alone |
 | Positioning | **Supplement, course-friendly** | Standalone (d=−0.12) |
 | **Primary mechanism** | **Guided self-explanation + misconception-naming feedback** | Engagement levels 4–6 (miscited); staging (LGB is shipping it) |
-| Loop | Anticipate (predict **+** why) → act → guided explain | Predict alone (0.047); multiple-choice explain (g=0.24 n.s.) |
-| Commands | **Fill-in-the-holes composer** | Read-only mirror (passive viewing); free typing |
-| Curriculum spine | **Undo, at topic 3** | Undo at topic 5 |
-| Framing | Predict-and-fail | Refutation ("you think X, actually Y") |
+| Loop | Anticipate (predict **+** why, **declared bet 4**) → act → **conceptualise-type guided explain** | Predict alone (0.047); multiple-choice explain (g=0.24 n.s.); fill-in-the-blank warrant (k=2, moderator splice) |
+| Commands | **Fill-in-the-holes composer as faded worked example** — typed holes: flag/path/ref/commit; backward fading | Read-only mirror (passive viewing); free typing; the g=0.895 justification |
+| Curriculum spine | **Undo, at topic 3: "Every commit is recoverable" + the boundary taught** | Undo at topic 5; "Nothing is ever lost" (false at the two real loss cases) |
+| `fsck --lost-found` | **Scoped: one exercise, read-only** (the Topic 4 trap's rescue) | Out of scope (breaks the spine invariant); dropping the trap |
+| Framing | **Refutation for ontological misconceptions; predict-and-fail bridging for intuition fragments** (§8.1) | One tool for both species |
+| Diagnosis | **FCI-style multiple choice — every distractor a named misconception** | Multiple-choice *explanation* (still rejected, g=0.24 n.s.) |
+| Trap feedback | **Templated from the learner's own Beat 1 answer** (g=0.56 vs 0.20) | Canned explainers |
+| Practice schedule | **Retrieval warm-ups + spaced review queue** (the two HIGH-utility techniques) | Self-explanation as the sole mechanism |
+| Gate measurement | **≥ 1 week delayed, time-on-task recorded** | Immediate post-test (wrong sign at 5 minutes) |
+| Accessibility | **Precise commitments (structure/navigation/description) + screen-reader user at gate** | "Only accessible git visualiser" boast |
 | Success metric | **Left-tail compression: completion, drop-off, fear** | Mean score |
 | Sandbox | A mode, not the front door | Sandbox-first (*"replicatably false"*) |
 | Vocabulary | `switch`/`restore` first | `checkout`-first (LGB) |
