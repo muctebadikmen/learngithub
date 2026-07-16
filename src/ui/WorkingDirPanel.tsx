@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import type { GitAction } from '../engine/types';
+import type { GitAction, RepoState } from '../engine/types';
 import { workingFiles, type WorkStatus } from './fileStatus';
-import type { RepoState } from '../engine/types';
 
 const STATUS_STYLE: Record<WorkStatus, string> = {
   untracked: 'text-zinc-500',
   modified: 'text-amber-400',
   staged: 'text-emerald-400',
   clean: 'text-zinc-400',
+  deleted: 'text-rose-400 line-through',
 };
 
 export function WorkingDirPanel({ state, dispatch }: { state: RepoState; dispatch: (a: GitAction) => unknown }) {
@@ -31,7 +31,7 @@ export function WorkingDirPanel({ state, dispatch }: { state: RepoState; dispatc
             </button>
             <span className="flex items-center gap-2">
               <span className="text-[10px] uppercase text-zinc-600">{f.status}</span>
-              {f.status !== 'clean' && f.status !== 'staged' && (
+              {f.status !== 'clean' && f.status !== 'staged' && f.status !== 'deleted' && (
                 <button className="text-emerald-400 hover:text-emerald-300 text-xs" onClick={() => dispatch({ cmd: 'add', paths: [f.path] })} title="stage (git add)">
                   stage →
                 </button>

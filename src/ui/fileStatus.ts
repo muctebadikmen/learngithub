@@ -2,16 +2,23 @@ import { headCommitOid } from '../engine/refs';
 import { getBlob, treeOf } from '../engine/store';
 import type { RepoState } from '../engine/types';
 
-export type WorkStatus = 'untracked' | 'modified' | 'staged' | 'clean';
+export type WorkStatus = 'untracked' | 'modified' | 'staged' | 'clean' | 'deleted';
 export interface WorkingFile { path: string; status: WorkStatus }
 export interface StagedFile { path: string; kind: 'added' | 'modified' }
 
-/** Every file in the working directory, classified against the index and HEAD. */
+/** Every file in the working directory or tracked by index/HEAD, classified. */
 export function workingFiles(state: RepoState): WorkingFile[] {
   const head = treeOf(state, headCommitOid(state));
   const idx = state.index;
   const rows: WorkingFile[] = [];
-  for (const [path, content] of Object.entries(state.workingDir)) {
+  const paths = new Set<string>([
+    ...Object.keys(state.workingDir),
+    ...Object.keys(idx),
+    ...Object.keys(head),
+  ]);
+  for (const path of paths) {
+    if (!(path in state.workingDir)) { rows.push({ path, status: 'deleted' }); continue; }
+    const content = state.workingDir[path];
     if (!(path in idx)) { rows.push({ path, status: 'untracked' }); continue; }
     if (content !== getBlob(state, idx[path]).content) { rows.push({ path, status: 'modified' }); continue; }
     rows.push({ path, status: head[path] === idx[path] ? 'clean' : 'staged' });

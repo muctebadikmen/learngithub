@@ -19,6 +19,16 @@ describe('workingFiles', () => {
     const s = run([write('a.txt', '1'), addF('a.txt'), commitM('c1')]);
     expect(workingFiles(s)).toEqual([{ path: 'a.txt', status: 'clean' }]);
   });
+  it('marks a tracked file missing from the working dir as deleted', () => {
+    const s = run([
+      write('a.txt', '1'), addF('a.txt'), commitM('c1'),
+      { cmd: 'switch', target: 'feature', create: true },
+      write('b.txt', '2'), addF('b.txt'), commitM('c2'),
+      { cmd: 'switch', target: 'main' },
+      { cmd: 'reset', mode: 'mixed', target: 'feature' },
+    ]);
+    expect(workingFiles(s).find((r) => r.path === 'b.txt')).toEqual({ path: 'b.txt', status: 'deleted' });
+  });
 });
 
 describe('stagedFiles', () => {
