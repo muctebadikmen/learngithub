@@ -35,6 +35,20 @@
   }
 }
 
+/* Scene zoom/pan wrapper: eased transform for button/reset zooms, instant
+   (no transition) while wheel-zooming or dragging. */
+.zoom-wrapper {
+  transition: transform 150ms ease;
+}
+.zoom-wrapper.zoom-instant {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .zoom-wrapper {
+    transition: none;
+  }
+}
+
 /* Command tooltip: pure CSS, hover-only, driven by data-cmd on the button. */
 [data-cmd] {
   position: relative;
