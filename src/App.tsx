@@ -5,10 +5,10 @@ import {
   aiBreak,
   aiImprove,
   approvePR,
+  branchCommits,
   commit,
   createBranch,
   createRepo,
-  currentBranchCommits,
   deleteBranch,
   goBack,
   initialModel,
@@ -17,7 +17,7 @@ import {
   openPR,
   push,
   restoreFromCloud,
-  switchLane,
+  switchBranch,
 } from './model'
 import { Scene } from './Scene'
 
@@ -184,23 +184,40 @@ function sandboxActions(s: ModelState): SandboxButton[] {
   if (s.laptopDead) {
     return [{ label: '☁️ GitHub’dan geri indir (clone)', apply: restoreFromCloud, kind: 'primary' }]
   }
-  const branchTipExists = currentBranchCommits(s).length > 0
   const buttons: SandboxButton[] = [
     { label: '🤖 AI’ya geliştirt', apply: aiImprove, kind: 'primary' },
     { label: '💥 AI bozdu!', apply: aiBreak, kind: 'danger', disabled: s.workLook.broken },
     { label: '💾 Commit at', apply: (m) => commit(m, `Değişiklik ${m.counter}`), kind: 'primary', disabled: !s.dirty },
     { label: '⏪ Geri dön', apply: goBack, disabled: goBack(s) === s },
-    { label: '☁️ Push’la', apply: push, disabled: s.commits.every((c) => s.pushedIds.includes(c.id)) },
+    { label: `☁️ Push'la (${s.currentBranch})`, apply: push, disabled: push(s) === s },
   ]
-  if (!s.branchName) {
-    buttons.push({ label: '🌿 Branch aç', apply: (m) => createBranch(m), disabled: s.currentLane !== 'main' })
-  } else {
-    buttons.push({ label: `🔀 ${s.currentLane === 'main' ? `${s.branchName}’e geç` : 'main’e geç'}`, apply: switchLane })
-    if (!s.pr) buttons.push({ label: '⇄ PR aç', apply: openPR, disabled: !branchTipExists })
-    if (s.pr?.status === 'open') buttons.push({ label: '👀 PR’ı onayla', apply: approvePR, kind: 'primary' })
-    buttons.push({ label: '✅ Merge et', apply: mergeBranch, disabled: !branchTipExists || s.pr?.status === 'open' })
-    buttons.push({ label: '🗑️ Branch’i sil', apply: deleteBranch, kind: 'danger' })
+
+  buttons.push({
+    label: '🌿 Branch aç',
+    apply: (m) => createBranch(m),
+    disabled: s.currentBranch !== 'main' || s.branches.length >= 3,
+  })
+
+  const others = ['main', ...s.branches.map((b) => b.name)].filter((n) => n !== s.currentBranch)
+  for (const name of others) {
+    buttons.push({ label: `🔀 geç: ${name}`, apply: (m) => switchBranch(m, name) })
   }
+
+  if (s.currentBranch !== 'main') {
+    const name = s.currentBranch
+    const own = branchCommits(s, name)
+    const prOpenForThis = s.pr?.status === 'open' && s.pr.from === name
+    const allPushed = own.length > 0 && own.every((c) => s.pushedIds.includes(c.id))
+    buttons.push({ label: `✅ Merge et (${name} → main)`, apply: mergeBranch, disabled: !own.length || prOpenForThis, kind: 'primary' })
+    buttons.push({ label: `🗑️ Sil: ${name}`, apply: deleteBranch, kind: 'danger' })
+    if (!s.pr || s.pr.status === 'merged') {
+      buttons.push({ label: '⇄ PR aç', apply: openPR, disabled: !allPushed })
+    }
+    if (s.pr?.status === 'open') {
+      buttons.push({ label: `👀 PR'ı onayla`, apply: approvePR, kind: 'primary' })
+    }
+  }
+
   buttons.push({ label: '💀 Bilgisayarı çökert', apply: laptopDie, kind: 'danger' })
   buttons.push({ label: '↺ Sıfırla', apply: () => createRepo(initialModel()) })
   return buttons

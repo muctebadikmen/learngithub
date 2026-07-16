@@ -1,5 +1,5 @@
-import type { Commit, ModelState } from './model'
-import { abandonedIds, currentBranchCommits, headCommit } from './model'
+import type { Branch, Commit, ModelState } from './model'
+import { abandonedIds, branchCommits, headCommit } from './model'
 
 // One persistent scene: computer (left) + GitHub (right), drawn from ModelState.
 // Node positions/opacity animate via CSS transitions in index.css (.scene-node).
@@ -7,36 +7,50 @@ import { abandonedIds, currentBranchCommits, headCommit } from './model'
 const THEMES = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4']
 const BLOCK_WIDTHS = [204, 156, 224, 132, 180]
 
-const LANE_Y = { main: 572, branch: 464 } as const
-const MAIN_COLOR = '#34d399'
-const BRANCH_COLOR = '#c4b5fd'
+// index 0 = main, 1..3 = the three possible side-branch lanes
+const LANE_COLORS = ['#34d399', '#c4b5fd', '#fbbf24', '#38bdf8']
+const laneColor = (laneIdx: number) => LANE_COLORS[laneIdx] ?? LANE_COLORS[0]
+
+// main 572, lane1 464, lane2 400, lane3 336
+function laneY(laneIdx: number): number {
+  return 572 - 108 * Math.min(laneIdx, 1) - 64 * Math.max(laneIdx - 1, 0)
+}
+
+// same shape, compressed: main 592, lane1 528, lane2 464, lane3 400
+function cloudLaneY(laneIdx: number): number {
+  return 592 - 64 * Math.min(laneIdx, 1) - 64 * Math.max(laneIdx - 1, 0)
+}
 
 function AppCard({ state }: { state: ModelState }) {
   const look = state.workLook
   const theme = THEMES[look.theme % THEMES.length]
-  const w = 300
-  const h = 248
   const x = 246
-  const y = 108
+  const y = 96
+  const w = 300
+  const h = 204
+  const headerH = 36
+  const rowH = 20
+  const rowSpacing = 28
+  const rowsStartY = y + headerH + 16
   return (
     <g className={look.broken ? 'app-card app-broken' : 'app-card'}>
       <rect x={x} y={y} width={w} height={h} rx={16} fill="#111827" stroke={look.broken ? '#ef4444' : '#374151'} strokeWidth={look.broken ? 3 : 1.5} />
-      <rect x={x} y={y} width={w} height={40} rx={16} fill={look.broken ? '#7f1d1d' : theme} />
-      <rect x={x} y={y + 24} width={w} height={16} fill={look.broken ? '#7f1d1d' : theme} />
-      <text x={x + 16} y={y + 26} fontSize={16} fontWeight={700} fill="#fff">
+      <rect x={x} y={y} width={w} height={headerH} rx={16} fill={look.broken ? '#7f1d1d' : theme} />
+      <rect x={x} y={y + headerH - 16} width={w} height={16} fill={look.broken ? '#7f1d1d' : theme} />
+      <text x={x + 16} y={y + 24} fontSize={16} fontWeight={700} fill="#fff">
         Uygulamam
       </text>
       {Array.from({ length: look.blocks }).map((_, i) => (
         <rect
           key={i}
           x={x + 20 + (look.broken && i % 2 ? 26 : 0)}
-          y={y + 56 + i * 38}
+          y={rowsStartY + i * rowSpacing}
           width={BLOCK_WIDTHS[i % BLOCK_WIDTHS.length]}
-          height={26}
-          rx={7}
+          height={rowH}
+          rx={6}
           fill={look.broken ? '#ef4444' : theme}
           opacity={look.broken ? 0.55 : 0.35 + 0.12 * ((i + 1) % 3)}
-          transform={look.broken && i % 2 ? `rotate(-3 ${x + 130} ${y + 70 + i * 38})` : undefined}
+          transform={look.broken && i % 2 ? `rotate(-3 ${x + 130} ${rowsStartY + 7 + i * rowSpacing})` : undefined}
         />
       ))}
       {look.broken && (
@@ -59,15 +73,15 @@ function AppCard({ state }: { state: ModelState }) {
   )
 }
 
-type Slot = { px: (x: number) => number; r: number; laneY: (lane: 'main' | 'branch') => number }
+type Slot = { px: (x: number) => number; r: number; laneY: (laneIdx: number) => number }
 
-function timelineSlots(commits: Commit[], startX: number, endX: number, r: number, yOffset = 0): Slot {
+function timelineSlots(commits: Commit[], startX: number, endX: number, r: number, laneYFn: (laneIdx: number) => number): Slot {
   const maxX = commits.length ? Math.max(...commits.map((c) => c.x)) : 0
   const gap = maxX > 0 ? Math.min(92, (endX - startX) / maxX) : 0
   return {
     px: (x: number) => startX + x * gap,
     r,
-    laneY: (lane) => LANE_Y[lane] + yOffset,
+    laneY: laneYFn,
   }
 }
 
@@ -100,44 +114,25 @@ function Timeline({
     if (mergedFrom) edges.push({ from: mergedFrom, to: c })
   }
 
-  // Branch just opened, no commits on it yet: show the fork as a ghost lane.
-  const fork = !pushedOnly && state.branchFromId ? byId.get(state.branchFromId) : undefined
-  const ghostFork = fork && currentBranchCommits(state).length === 0 ? fork : undefined
-
   return (
     <g>
-      {ghostFork && (
-        <g className="scene-node">
-          <line
-            x1={slot.px(ghostFork.x)}
-            y1={slot.laneY('main')}
-            x2={slot.px(ghostFork.x) + 56}
-            y2={slot.laneY('branch')}
-            stroke={BRANCH_COLOR}
-            strokeWidth={3}
-            strokeDasharray="7 7"
-            opacity={0.7}
-          />
-          <circle cx={slot.px(ghostFork.x) + 56} cy={slot.laneY('branch')} r={slot.r - 4} fill="none" stroke={BRANCH_COLOR} strokeWidth={2.5} strokeDasharray="6 6" />
-        </g>
-      )}
       {edges.map(({ from, to }) => (
         <line
           key={`${suffix}-${from.id}-${to.id}`}
           x1={slot.px(from.x)}
-          y1={slot.laneY(from.lane)}
+          y1={slot.laneY(from.laneIdx)}
           x2={slot.px(to.x)}
-          y2={slot.laneY(to.lane)}
-          stroke={to.lane === 'branch' || from.lane === 'branch' ? BRANCH_COLOR : '#3f3f46'}
+          y2={slot.laneY(to.laneIdx)}
+          stroke={to.laneIdx > 0 ? laneColor(to.laneIdx) : from.laneIdx > 0 ? laneColor(from.laneIdx) : '#3f3f46'}
           strokeWidth={3}
           opacity={abandoned.has(to.id) && !pushedOnly ? 0.25 : 0.8}
         />
       ))}
       {commits.map((c) => {
         const cx = slot.px(c.x)
-        const cy = slot.laneY(c.lane)
+        const cy = slot.laneY(c.laneIdx)
         const dim = !pushedOnly && abandoned.has(c.id)
-        const fill = c.look.broken ? '#ef4444' : c.lane === 'main' ? MAIN_COLOR : BRANCH_COLOR
+        const fill = c.look.broken ? '#ef4444' : laneColor(c.laneIdx)
         return (
           <g key={`${suffix}-${c.id}`} className="scene-node" style={{ transform: `translate(${cx}px, ${cy}px)`, opacity: dim ? 0.3 : 1 }}>
             <circle r={slot.r} fill={fill} stroke="#0b0f1a" strokeWidth={3} />
@@ -153,7 +148,7 @@ function Timeline({
         )
       })}
       {showHead && head && (
-        <g className="scene-node" style={{ transform: `translate(${slot.px(head.x)}px, ${slot.laneY(head.lane)}px)` }}>
+        <g className="scene-node" style={{ transform: `translate(${slot.px(head.x)}px, ${slot.laneY(head.laneIdx)}px)` }}>
           <circle r={slot.r + 7} fill="none" stroke="#fff" strokeWidth={3} />
           <g transform={`translate(0, ${slot.r + 34})`}>
             <rect x={-52} y={0} width={104} height={26} rx={13} fill="#27272a" stroke="#52525b" />
@@ -167,34 +162,69 @@ function Timeline({
   )
 }
 
-function LanePills({ state, slot, cloud }: { state: ModelState; slot: Slot; cloud?: boolean }) {
-  const commits = cloud ? state.commits.filter((c) => state.pushedIds.includes(c.id)) : state.commits
-  if (!commits.some((c) => c.lane === 'main')) return null
-  const shown = new Set(commits.map((c) => c.id))
-  const branchFirst = currentBranchCommits(state).find((c) => shown.has(c.id))
-  const fork = state.branchFromId && !cloud ? commits.find((c) => c.id === state.branchFromId) : undefined
-  const branchPillX = branchFirst ? slot.px(branchFirst.x) - 10 : fork ? slot.px(fork.x) + 46 : null
-  const pill = (x: number, y: number, label: string, color: string, active: boolean) => (
-    <g className="scene-node" style={{ transform: `translate(${x}px, ${y}px)` }}>
-      <rect x={-8} y={-13} width={label.length * 9 + 24} height={26} rx={13} fill="#18181b" stroke={color} strokeWidth={active ? 2.5 : 1} />
-      <text x={label.length * 4.5 + 4} y={5} fontSize={14} fontWeight={700} fill={color} textAnchor="middle">
-        {label}
-      </text>
-    </g>
-  )
+// Dashed fork line + ghost node for every active branch that has no commits
+// yet — computer panel only (nothing to show on the cloud side for those).
+function GhostForks({ state, slot }: { state: ModelState; slot: Slot }) {
   return (
     <g>
-      {pill(slot.px(0) - (cloud ? 4 : 22), slot.laneY('main') - (slot.r + 22), 'main', MAIN_COLOR, !cloud && state.currentLane === 'main')}
-      {state.branchName &&
-        branchPillX !== null &&
-        pill(branchPillX, slot.laneY('branch') - (slot.r + 34), state.branchName, BRANCH_COLOR, !cloud && state.currentLane === 'branch')}
+      {state.branches.map((b) => {
+        if (branchCommits(state, b.name).length > 0) return null
+        const fork = state.commits.find((c) => c.id === b.forkId)
+        if (!fork) return null
+        const color = laneColor(b.laneIdx)
+        const x1 = slot.px(fork.x)
+        const x2 = x1 + 56
+        return (
+          <g key={b.name} className="scene-node">
+            <line x1={x1} y1={slot.laneY(0)} x2={x2} y2={slot.laneY(b.laneIdx)} stroke={color} strokeWidth={3} strokeDasharray="7 7" opacity={0.7} />
+            <circle cx={x2} cy={slot.laneY(b.laneIdx)} r={slot.r - 4} fill="none" stroke={color} strokeWidth={2.5} strokeDasharray="6 6" />
+          </g>
+        )
+      })}
+    </g>
+  )
+}
+
+// One pill per active branch (positioned at its first commit, or its ghost
+// fork when empty) + the main pill. On the cloud side, only branches with at
+// least one pushed commit get a pill, and it sits at their first pushed commit.
+function BranchPills({ state, slot, cloud }: { state: ModelState; slot: Slot; cloud?: boolean }) {
+  const commits = cloud ? state.commits.filter((c) => state.pushedIds.includes(c.id)) : state.commits
+  if (!commits.some((c) => c.branch === 'main')) return null
+
+  const pillAt = (x: number, laneIdx: number, label: string, active: boolean) => {
+    const color = laneColor(laneIdx)
+    const y = slot.laneY(laneIdx) - (slot.r + (laneIdx === 0 ? 22 : 34))
+    return (
+      <g key={label} className="scene-node" style={{ transform: `translate(${x}px, ${y}px)` }}>
+        <rect x={-8} y={-13} width={label.length * 9 + 24} height={26} rx={13} fill="#18181b" stroke={color} strokeWidth={active ? 2.5 : 1} />
+        <text x={label.length * 4.5 + 4} y={5} fontSize={14} fontWeight={700} fill={color} textAnchor="middle">
+          {label}
+        </text>
+      </g>
+    )
+  }
+
+  const branchPill = (b: Branch) => {
+    const own = commits.filter((c) => c.branch === b.name)
+    if (own.length) return pillAt(slot.px(own[0].x) - 10, b.laneIdx, b.name, state.currentBranch === b.name)
+    if (cloud) return null // nothing pushed for this branch yet
+    const fork = state.commits.find((c) => c.id === b.forkId)
+    if (!fork) return null
+    return pillAt(slot.px(fork.x) + 46, b.laneIdx, b.name, state.currentBranch === b.name)
+  }
+
+  return (
+    <g>
+      {pillAt(slot.px(0) - (cloud ? 4 : 22), 0, 'main', state.currentBranch === 'main')}
+      {state.branches.map((b) => branchPill(b))}
     </g>
   )
 }
 
 function GitHubSide({ state, labeled }: { state: ModelState; labeled: boolean }) {
   const pushed = state.commits.filter((c) => state.pushedIds.includes(c.id))
-  const slot = timelineSlots(pushed, 852, 1206, 12, 20)
+  const slot = timelineSlots(pushed, 852, 1206, 12, cloudLaneY)
   return (
     <g>
       <text x={824} y={72} fontSize={22} fontWeight={800} fill="#e4e4e7">
@@ -225,7 +255,7 @@ function GitHubSide({ state, labeled }: { state: ModelState; labeled: boolean })
             </text>
           </g>
           <Timeline state={state} commits={pushed} slot={slot} pushedOnly showHead={false} fontSize={11} />
-          <LanePills state={state} slot={slot} cloud />
+          <BranchPills state={state} slot={slot} cloud />
         </g>
       )}
       {state.pr && (
@@ -257,7 +287,7 @@ function GitHubSide({ state, labeled }: { state: ModelState; labeled: boolean })
 }
 
 export function Scene({ state, labeled = false }: { state: ModelState; labeled?: boolean }) {
-  const slot = timelineSlots(state.commits, 116, 700, 18)
+  const slot = timelineSlots(state.commits, 116, 700, 18, laneY)
   return (
     <svg viewBox="0 0 1280 720" className="h-full w-full" role="img" aria-label="GitHub görselleştirmesi">
       {/* computer panel */}
@@ -278,15 +308,16 @@ export function Scene({ state, labeled = false }: { state: ModelState; labeled?:
       )}
       <AppCard state={state} />
       <Timeline state={state} commits={state.commits} slot={slot} pushedOnly={false} showHead fontSize={13} />
-      <LanePills state={state} slot={slot} />
+      <GhostForks state={state} slot={slot} />
+      <BranchPills state={state} slot={slot} />
       <GitHubSide state={state} labeled={labeled} />
       {labeled && state.commits.length > 0 && (
         <g fontSize={15} fill="#fbbf24">
           <text x={396} y={664} textAnchor="middle">
             her nokta bir commit = kayıt noktası
           </text>
-          {state.commits.some((c) => c.lane === 'branch') && (
-            <text x={396} y={LANE_Y.branch - 56} textAnchor="middle">
+          {state.commits.some((c) => c.laneIdx > 0) && (
+            <text x={396} y={laneY(1) - 56} textAnchor="middle">
               branch = main’i bozmayan deneme hattı
             </text>
           )}
