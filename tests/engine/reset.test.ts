@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { reduce } from '../../src/engine/reduce';
 import { resolveRef } from '../../src/engine/refs';
-import { run } from './add.test';
-
-const write = (path: string, content: string) => ({ cmd: 'writeFile', path, content } as const);
-const addF = (...paths: string[]) => ({ cmd: 'add', paths } as const);
-const commitM = (message: string) => ({ cmd: 'commit', message } as const);
+import { run, write, addF, commitM } from './helpers';
 
 const threeCommits = () => run([
   write('a.txt', 'one'), addF('a.txt'), commitM('c1'),

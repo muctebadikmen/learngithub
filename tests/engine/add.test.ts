@@ -1,18 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { initialState } from '../../src/engine/actions/init';
 import { reduce } from '../../src/engine/reduce';
-import type { GitAction, RepoState } from '../../src/engine/types';
-
-export function run(actions: GitAction[], from?: RepoState): RepoState {
-  let state = from ?? reduce(initialState(), { cmd: 'init' }).state;
-  for (const a of actions) {
-    const r = reduce(state, a);
-    const err = r.events.find((e) => e.kind === 'error');
-    if (err) throw new Error(`unexpected error: ${JSON.stringify(err)}`);
-    state = r.state;
-  }
-  return state;
-}
+import { run } from './helpers';
 
 describe('add', () => {
   it('stages the current working content as a blob', () => {
