@@ -1,730 +1,612 @@
 # Git Learning Game — Design Specification
 
 **Date:** 2026-07-16
-**Status:** Revised against competitive and pedagogical research; awaiting review
+**Status:** v3 — rewritten against four research reports. Awaiting review.
 **Deployment target:** Netlify (static, no backend)
 
 ---
 
 ## 1. Purpose
 
-Most people learn git by memorising commands. They type `git add`, `git commit`, `git push` because
-someone told them to, and never learn what happens underneath. The moment something goes wrong they
-are stranded, because they have a list of spells rather than a picture.
+Most people learn git by memorising commands and never learn what happens underneath. When something
+goes wrong they are stranded — they have a list of spells, not a picture.
 
-The real idea is small enough to fit in one sentence:
+The model is small enough to fit in one sentence:
 
 > **A repository is a chain of complete snapshots. Branches are movable name tags pointing at one of
 > those snapshots.**
 
-Everything else in git — merging, rebasing, undoing, remotes, pull requests — is built from those two
-things.
+But **installing that sentence is not sufficient**, and this spec's central discipline is taking that
+seriously (§2).
 
-### 1.1 Why this is worth building at all
+### 1.1 Two goals, not one
 
-Perez De Rosso & Jackson (*"What's Wrong with Git?"*, Onward! 2013) identified the root problem:
+**Goal A — the model.** Perez De Rosso & Jackson (Onward! 2013) found the root problem: git's concepts
+*"have no a priori meaning."* Unlike a shopping cart or a folder, nothing in git maps to anything in
+the physical world, so no intuition transfers and a learner cannot guess. Git *requires* an explicitly
+constructed mental model.
 
-> Git's concepts — "tracked file," "staging area," "local repository" — **"have no *a priori*
-> meaning."**
+**Goal B — calibrated confidence.** Church, Söderberg & Elango (PPIG 2014) studied Google and Autodesk
+engineers and found something the model-transfer thesis cannot explain: **they understood git and were
+still afraid of it.** They re-cloned entire repositories to recover. They made manual backups before
+running commands. One asked a colleague to run an operation because *"it scares the [elided] out of
+me."* The researchers explicitly ruled out conceptual gaps — these were expert abstraction workers who
+could articulate the model correctly.
 
-Unlike a shopping cart or a folder, **nothing in git maps to anything in the physical world.** No
-intuition transfers. A learner cannot guess. This means git does not merely *benefit* from an
-explicitly constructed mental model — it **requires** one, and that is precisely what a visual,
-manipulable model provides. This paper is the strongest available justification for the project.
-
-### 1.2 The correction: visualisation is not the active ingredient
-
-An earlier draft of this spec bet everything on *"make the model visible and intuition follows."*
-That bet is half wrong, and the evidence is direct. Hundhausen, Douglas & Stasko's meta-study of
-algorithm-visualisation effectiveness (JVLC 2002) concluded:
-
-> **"The activities performed by students and their engagement matter more than the subject content
-> or the graphic elements of the visualization."**
-
-**A prettier graph does not teach. What the learner does teaches.** The visualisation is necessary
-but not sufficient — it is the medium, not the mechanism. This finding is load-bearing for
-everything below and is the reason for §5.
-
-### 1.3 The design test
-
-Every proposed feature must answer: *does this make the model more visible **and give the learner
-something to do with it**, or is it decoration?* Decoration is cut.
-
-### 1.4 Explicitly not a story game
-
-An earlier draft wrapped the curriculum in a narrative with named teammates and chapter arcs. This
-was rejected: it added a second thing to understand on top of git. The product is **direct** — it
-shows how git works and names the commands. Any character or scenario exists only as a labelled panel
-("Another developer"), never as a plot.
+**Understanding is necessary and demonstrably not sufficient.** Confidence is a separate axis, built
+only by safe, reversible practice on consequences. This is the tension between the two strongest
+papers in the field, it is unresolved in the literature, and this product has to serve both sides of
+it. It is a design constraint, not a compromise.
 
 ---
 
-## 2. Competitive position
+## 2. The governing law
 
-### 2.1 The landscape has an empty centre
+Sorva (2012) built a program-simulation tool, measured what students actually learned, and found:
 
-| | Web / zero-install | Visualises internals | Files, index, conflicts, PRs |
-|---|---|---|---|
-| Learn Git Branching (33,730★) | ✅ | ✅ DAG only | ❌ |
-| Oh My Git! (2,840★) | ❌ desktop | ✅ real object DB | ✅ |
-| GitHub Skills / Learn | ✅ real GitHub | ❌ none | ✅ PRs only |
-| Githug, gitexercises, Git-it | ❌ CLI | ❌ none | ✅ |
-| git-sim (GPL) | ❌ Python CLI | ✅ static image | ✅ |
-| **This project** | ✅ | ✅ | ✅ |
+> **"Students appear to have learned about precisely what the requirements of the activity made
+> focal, and not much else."**
 
-Fidelity-maximalism has failed twice: Oh My Git! shells out to a real `git` binary and is therefore
-permanently desktop-only; its browser successor (real git inside an x86 VM) died at 23★, dormant
-since 2024-02-29. Learn Git Branching, which fakes git entirely, has 33,730★. **The lesson is not
-subtle.**
+The concept his tool *displayed* but did not *require* was learned by almost nobody — and he suspects
+it was actively harmed, because attention went to the task instead. He states it against his own
+thesis.
 
-### 2.2 What is *not* our differentiator
+> ### **Whatever the tool forces the learner to generate is the only thing it teaches.**
 
-**Staging.** LGB [PR #1379](https://github.com/pcottle/learnGitBranching/pull/1379), opened
-2026-07-14, adds working directory, staging, conflicts, and PR levels (+1516/−27, mergeable, maintainer
-engaged). The maintainer independently described our exact intended animation. **"We have a staging
-panel" is not a strategy.**
+**Applied to us, honestly: if the win condition is "drag the file into the box," learners will learn
+dragging — not what the index is.** The visualisation cannot teach. Only the generation task can.
 
-Why it remains survivable, not fatal:
-- The new levels are **English-only** (3 `en_US` keys, zero of 25 other locales). Under LGB's inline
-  i18n architecture — a measured **15.1× translation tax** — and its volunteer translation model,
-  Turkish coverage of new content will lag by years. Arabic has sat at 0% for years.
-- It is an **opt-in side panel on 7 bonus levels**. The core 34 levels remain DAG-only. It is a
-  bolt-on, not a rearchitecture.
-- The maintainer has just started a new job and has asked for the PR to be split.
+**This replaces the earlier design test.** Every exercise must answer: *what does this force the
+learner to generate, and is that thing the lesson?* If the answer is "a gesture," the exercise is
+decoration and does not ship.
 
-### 2.3 What *is* our differentiator
+### 2.1 The cautionary tale we are one bad decision away from
 
-1. **Engagement levels 4–6.** See §5. Unoccupied by every git tool in any medium.
-2. **Misconception diagnosis, not binary grading.** See §8.4. Nobody does this.
-3. **Turkish as a first-class language from day one**, not a lagging volunteer translation.
-4. **Accessibility.** LGB [issue #960](https://github.com/pcottle/learnGitBranching/issues/960) —
-   the graph is unreachable by screen readers — has been open since 2022. LGB's entire pedagogy is
-   invisible to blind learners. See §11.
+**Python Tutor: 25 million users, 500 million visualisations, 10,000+ schools, and no evidence it
+teaches anyone anything.** No RCT exists. The best independent study (Karnalim & Ayub 2018, N=56,
+14 weeks) found nothing in 12 weeks and **one week where it made students significantly worse**. Its
+creator has stated this in print twice — 2013: *"numbers and anecdotes are no substitutes for a
+rigorous evaluation of efficacy"*; 2021: *"this paper does not present a user evaluation."* In 2013 he
+correctly diagnosed why — his tool sits at passive viewing, which the literature already said was the
+dead zone — and proposed adding prompts and quizzes. **He never shipped it.**
+
+That is the default outcome for a beautiful, honest git visualiser. **Popularity is not learning.**
 
 ---
 
-## 3. Audience and scope
+## 3. What the evidence actually supports
 
-### 3.1 Audience — tiered, one product
+Cited honestly, with the limits that usually get dropped.
+
+### 3.1 Strong — build on these
+
+| Finding | Evidence |
+|---|---|
+| **Self-explanation** — making the learner *generate* an explanation | **g = 0.55**, k=69, **N=5,917** (Bisra et al. 2018, meta-analysis). Fail-safe N = 6,028. **Computer science: g = 0.76** (k=9). **19 of 20 moderators didn't matter — the effect is hard to break.** |
+| **Guided beats free self-explanation, ~2×** | RCT, N=88, code comprehension (Tamang et al., SIGCSE 2021): control 0.047 · free SE **0.30** · **Socratic 0.59**. F(2,85)=13.5, p=.001, η²=0.24. All pairwise contrasts significant. |
+| **Feedback that names the misconception** | BTRecurTutor: exercises alone **d=0.5**; exercises + misconception-naming feedback **d=1.1**; the gap between them is itself **d=0.6**, p=.0001. |
+| **Generation format matters enormously** | Fill-in-the-blank **g=0.895** · conceptualise **g=0.873** · interrogative **g=0.559** (k=36, the workhorse). |
+
+### 3.2 Moderate — use, don't lean on
+
+- **Subgoal labelling** (Margulieux et al. 2020, classroom, N=265): quizzes **d=0.44** (p=.001) but
+  **exams d=0.20, p=.24 — not significant**. The real effect is **withdrawal and failure roughly
+  halved (44% → 25% at-risk)** and **lower variance**. *Subgoals compress the left tail; they do not
+  lift the mean.* See §11.
+- **Scaffolding** is the only game augmentation whose confidence interval clears zero (g=0.41).
+- **Multiple sessions** (g=0.44) beat single sessions (g=0.08, n.s.).
+- **Schematic visuals g=0.48; realistic visuals −0.01.** This vindicates the clean, technical art
+  direction on evidence rather than taste.
+
+### 3.3 Weak, null, or actively negative — do not build on these
+
+- **Passive visualisation.** Hundhausen et al.: *"studies in which students merely viewed
+  visualizations did not demonstrate significant learning advantages."* **11 of 24 studies
+  significant; one significant in the wrong direction** (text beat graphics).
+- **Prediction alone.** Tamang's prediction-only control gained **0.047** — nothing.
+- **Multiple-choice self-explanation: g = 0.24, not significant.** **Metacognitive prompts: g = 0.19,
+  not significant.** *An earlier draft of this spec specified exactly the multiple-choice cell.*
+- **"Reveal the answer" buttons destroy the effect** (Schworm & Renkl 2006): learners given
+  self-explanation prompts *only* outperformed those also given explanations on demand.
+- **Games as standalone**: d = −0.12. **As a supplement: d = 0.51.** (Sitzmann 2011.) Matched on
+  activity, games score **d = −0.02**; against a computerised tutorial, **d = −0.70**. **Entertainment
+  value was not a significant moderator**, and high-entertainment games scored numerically *lower*.
+- **Pure discovery / sandbox-first** is, in Nicky Case's words after recanting his own founding
+  premise, *"replicatably false"* for beginners.
+
+### 3.4 Citations we will not overstate
+
+- **Hundhausen et al. is not a meta-analysis.** The authors explicitly declined to pool: *"we
+  considered using statistical meta-analytic techniques… but ultimately decided against them."* It is
+  a vote-count review, 11–13 against. **No pooled effect size for program visualisation exists.**
+- **The Naps engagement taxonomy is not a ladder.** The authors: *"we do not consider this to be an
+  ordinal scale. The relationships among these six forms of engagement do not form a simple
+  hierarchical relationship."* An earlier draft of this spec made "levels 4–6" the primary
+  differentiator on exactly that misreading. When *constructing vs. viewing* was tested directly
+  (Hundhausen & Douglas 2000), **there was no significant difference.** JFLAP sits at the
+  constructing level and its only controlled comparison was **null**.
+- **Chi's founding self-explanation studies are N=8 (correlational) and N=24 (26% vs 16% gain).** The
+  effect survives on Bisra's replication base, not on its famous originals.
+- **The newest, best-powered test is a null** — Harders & Ebersbach (2026), preregistered, N=208,
+  active control: no self-explanation effect **on factual knowledge** (a category where Bisra already
+  predicts weakness).
+- **Time-on-task confounds the whole field.** Sorva's treatment group spent **28.3 min vs 15.5 min**
+  (1.8×, p≈.000) and he volunteers that this *"explains in part"* his one significant result. Bisra:
+  took-longer g=0.72 vs equal-time g=0.41; **47 of 69 studies never reported duration.** See §11.2.
+
+---
+
+## 4. Positioning
+
+**A supplement, not a replacement.** This is the configuration with the strongest evidence (d=0.51 vs
+−0.12 standalone) and the only one with a distribution story: instructors adopt it, which is how
+Learn Git Branching actually spread.
+
+Consequences that are design requirements, not marketing:
+- **Per-topic entry points.** An instructor assigns "topics 3–4 before Thursday."
+- **Resumable and multi-session** (g=0.44 vs 0.08 for single-session).
+- **Anyone can still land on it cold** and work through from the start.
+- It **pushes learners onto their own real repository**, explicitly. It does not pretend to replace
+  practice.
+
+---
+
+## 5. Audience and scope
+
+### 5.1 Audience
 
 | Tier | Assumed knowledge | Served by |
 |---|---|---|
-| Total beginner | No terminal, no git | Topics 1–4, heavy visualisation |
-| CS student / junior | Codes, copy-pastes git commands, no mental model | Topics 1–8, can skip early exercises |
-| Non-developer collaborator | Needs to follow branches and PRs | Topics 1, 3, 8 |
+| Total beginner | No terminal, no git | Topics 1–5 |
+| CS student / junior | Codes, copy-pastes git, no model | All topics; scaffolding fades fast |
+| Non-developer collaborator | Needs to follow branches and PRs | Topics 1, 4, 9 |
+| **Instructor** | Teaching a course | Assigns topics; needs entry points |
 
-A single first-launch question (*"Used git before?"*) sets a suggested starting point. It is a
-suggestion, not a lock — all topics are always reachable. **All tiers use real git vocabulary
-throughout**; there is no plain-word track (§16).
+**Scaffolding must fade on *demonstrated competence*, not on level number.** The expertise-reversal
+effect is not a nicety: guidance that helps novices **actively harms** experts. §7.3 is how we measure
+competence to fade against.
 
-### 3.2 In scope
+### 5.2 In scope
+Git core plus GitHub collaboration: commits, staging, branches, HEAD, reachability, reflog, merge,
+conflicts, reset, revert, restore, rebase, interactive rebase, cherry-pick, remotes, clone, push,
+fetch, pull, fork, pull requests, review, merge strategies.
 
-Git core plus GitHub collaboration: commits, staging, branches, HEAD, merge, conflicts, reset,
-revert, reflog, rebase, interactive rebase, cherry-pick, remotes, clone, push, fetch, pull, fork,
-pull requests, review, merge strategies.
-
-### 3.3 Out of scope (v1)
-
-- GitHub Actions / CI, Projects, Releases, Issues, protected branches, CODEOWNERS
-- Submodules, LFS, hooks, worktrees, bisect, blame
-- `git stash` — *deferred to v1.1; note Gitless removed it entirely as needless complexity*
-- Real multiplayer; accounts; backend; leaderboards; teacher dashboards
-- Typing real commands as input (see §14.1)
+### 5.3 Out of scope (v1)
+Actions/CI, Projects, Releases, Issues, protected branches, CODEOWNERS, submodules, LFS, hooks,
+worktrees, bisect, blame. **`git stash` deferred** — note Perez De Rosso found stash *"maps to no
+high-level purpose"* and exists only to patch flaws in branching; Gitless deleted it. Real
+multiplayer, accounts, backend, leaderboards: out.
 
 ---
 
-## 4. Product structure
+## 6. Product structure
 
-Three modes sharing one screen layout.
-
-### 4.1 Learn
-Eight topics in order. Each topic is a short **demo** (§5.1 — never passive) followed by
-**exercises**. 40 exercises total.
-
-### 4.2 Sandbox
-Free play. Every operation available, no goal, no failure. A scenario picker can load any starting
-state. This is engagement level 4 (*changing*) by construction and is therefore a pedagogical
-component, not a bonus.
-
-### 4.3 Reference
-Every command taught, each with the animation of what it does to the graph. Entries unlock as
-encountered but all are browsable.
+**Learn** — nine topics (§8). **Sandbox** — free play, explicitly *not* the front door (§3.3).
+**Reference** — every command with its animation. **Progress export** — §10.4.
 
 ---
 
-## 5. The engagement model
+## 7. The core loop
 
-This section exists because of §1.2 and is **the primary differentiator**.
+This section is the product. §2 governs it.
 
-### 5.1 The taxonomy, and where everyone sits
+### 7.1 The three-beat exercise
 
-Naps et al. (2002) rank learner engagement with a visualisation:
+**Beat 1 — Anticipate.** Before anything animates: *"Where will `main` be after this, and why?"*
+Prediction **and** reason, fused into one act. This is not the engagement ladder; it is here because:
+- **Prediction alone is worth ~nothing** (Tamang: 0.047). Prediction *plus* reason is
+  "anticipatory self-explanation," **the highest cell in Bisra's table (g=1.37)** — a k=1 estimate the
+  authors say can be discounted, but it is also **exactly what Hundhausen independently identified**
+  as one of the few AV activities that worked, and **exactly the condition whose removal made Gurka's
+  replication of Byrne collapse to null.** Three literatures, arrived at separately, pointing at the
+  same mechanism. That convergence is the argument, not the k=1 effect size.
+- **It surfaces fragmentary intuition and makes it fail visibly** — which §8.1 explains is the only
+  thing that works on git's misconceptions.
 
-| Level | Every existing git tool | This project |
-|---|---|---|
-| 1. No viewing | — | — |
-| 2. **Viewing** | ✅ LGB: 915 prose modals | ✅ demos |
-| 3. **Responding** | ⚠️ LGB: typing a command is not *predicting* | ✅ predict step |
-| 4. **Changing** | ❌ nobody | ✅ exercises + Sandbox |
-| 5. **Constructing** | ❌ nobody | ✅ inverse exercises |
-| 6. **Presenting** | ❌ nobody | ✅ explain step |
+**Beat 2 — Act.** Manipulate the model to reach the goal. **The win condition must require the
+concept, never a gesture** (§2).
 
-**LGB — the category winner — operates at levels 2–3 of 6.** The top three levels are completely
-unoccupied by every tool in this landscape. This is defensible in a way a staging panel is not.
+**Beat 3 — Explain, guided.** Not multiple choice (g=0.24, n.s.). **Fill-in-the-blank (g=0.895)** and
+short constructed responses, Socratic-guided (0.59 vs 0.30 for free explanation). **There is no
+"reveal answer" button** — it destroys the effect.
 
-### 5.2 The four-beat exercise structure
+### 7.2 The command composer
 
-Every exercise runs the same four beats. This is the product's core loop.
+**Replaces the read-only mirror**, which was passive viewing — Python Tutor's exact failure mode.
 
-1. **Predict** *(level 3)* — before anything animates, the learner is asked a single concrete
-   question with a *pointing* answer: *"After this merge, where will `main` be?"* → click a node.
-   No typing, no multiple choice. Predict-observe-explain has a deep evidence base and costs us
-   almost nothing, because the engine already knows the answer.
-2. **Observe** *(level 2)* — the animation plays. A prediction that was wrong is not scored; it is
-   **contrasted**: the learner's predicted node and the real one are shown together. Being wrong here
-   is the point — it is what makes the correction stick.
-3. **Do** *(level 4)* — the exercise proper. Manipulate the model to reach the goal.
-4. **Explain** *(level 6)* — one question: *"What did rebase do to the original commits?"* with
-   distractors drawn from **the documented misconception list (§6.1)**. This teaches and diagnoses in
-   the same click.
+Commands appear with holes: `git reset --[?] [?]`. The learner **completes** them from valid choices.
+This is fill-in-the-blank — the strongest legitimate generation format (g=0.895), gradeable with no
+backend, and a **faded worked example**: the scaffold *is* the thing being taught, so it dissolves as
+competence grows. Oh My Git!'s typed-hole cards are the existing proof this works as a game mechanic.
 
-**Inverse exercises** *(level 5, ~1 per topic)*: given a target graph, *construct* a repository state
-that produces it. There are many valid solutions; the goal predicate accepts all of them (§8.3).
+**The learner never types from scratch in v1.** The composer fades to a real prompt in expert mode
+(§16) — the fade is now a designed path rather than a rewrite.
 
-### 5.3 Predict is skippable, once
-An "I know this" control skips the predict beat for the current topic. The CS-student tier must not
-be forced through it. Skipping is remembered per topic, never globally.
+### 7.3 Misconception diagnosis, and the concept inventory
 
----
+Every tool in the landscape grades with a binary predicate — LGB compares trees, Oh My Git! runs bash,
+Githug returns booleans. Win or lose, no explanation of *why*.
 
-## 6. Curriculum
+We declare **misconception traps**: predicates matching known-wrong end states, each mapped to
+feedback that **names the misconception**. This is the d=0.5 → **d=1.1** finding, the largest
+intervention effect in the corpus.
 
-Each exercise names the misconception it kills. **An exercise without one does not ship.**
+**And it doubles as an instrument.** There is **no validated version-control concept inventory** —
+confirmed gap. Our anticipate-beat data would be the first. We need it anyway: **expertise reversal
+says scaffolding must fade on measured competence, and you cannot measure what you don't instrument.**
 
-### 6.1 The ranked misconception list
-
-Derived from Perez De Rosso & Jackson (2013), the 2012 Git User's Survey (n≈4,100), and the
-structure of existing tools. Confidence is labelled honestly; the top rows are measured, the bottom
-rows are reasoned inference.
-
-| # | Misconception | Confidence |
-|---|---|---|
-| 1 | **The staging area: what it is for, and that it holds a *snapshot*, not a file reference** | **Very high** |
-| 2 | **Working dir / index / repo are coupled, not independent** | **Very high** |
-| 3 | **Branches are pointers, not folders or copies** | **Very high** |
-| 4 | `checkout` is overloaded (branch vs file vs commit) | High |
-| 5 | `reset` vs `revert` vs `restore` | High |
-| 6 | Detached HEAD | High |
-| 7 | Remote-tracking branches: `origin/main` ≠ `main`; fetch ≠ pull | High |
-| 8 | Commits are snapshots, not diffs | High |
-| 9 | Tracked ≠ staged ≠ committed | High |
-| 10 | Merge vs rebase | Medium (inferred) |
-| 11 | Lost commits are recoverable (reflog) | Medium (inferred) |
-
-This table is the source of truth for exercise design **and** for the `Explain` beat's distractors.
-
-### 6.2 Order: files before branches
-
-Oh My Git! teaches `intro → files → branches → merge → index → remotes → changing-the-past →
-shit-happens → workflows`. LGB does the opposite (branches first, files never). **The misconception
-evidence backs Oh My Git!** — misconceptions #1 and #2 are both about files and the index. We teach
-files first.
-
-### Topic 1 — What git is (4 exercises)
-
-| # | Exercise | Kills |
-|---|---|---|
-| 1.1 | The problem: `final_v2_FINAL_real.zip`. Then `git init` | "git is a backup tool / a cloud folder" |
-| 1.2 | Take a snapshot. A node appears. Change a file, snapshot again. The chain forms | "git tracks files individually" |
-| 1.3 | Time travel: click any node, files rebuild. Click back, they return | "going back loses my work" |
-| 1.4 | Anatomy: open a node — full file snapshot, parent, hash, message. Ask for the diff, watch it be **computed** against the parent | **#8** — commits store changes |
-
-`git init`, `git log`, `git show`
-
-### Topic 2 — Files, staging, commits (6 exercises)
-
-**This topic carries misconceptions #1, #2 and #9 — the three highest-confidence items on the list.
-It gets the most exercises and the most care.**
-
-| # | Exercise | Kills |
-|---|---|---|
-| 2.1 | Three zones appear. Edit → drag to staging → commit | "add and commit are one thing" |
-| 2.2 | **Why staging exists**: two unrelated changes on the desk, ship them as two clean commits | **#1** — "staging is pointless bureaucracy" |
-| 2.3 | **The index holds a snapshot, not a pointer**: stage a file, edit it again — now the *same file* exists in two versions at once. Commit, and the **staged** version is what lands | **#1, #2** — the orthogonality misfit, demonstrated rather than described |
-| 2.4 | **`git commit <file>` commits the *working* version, bypassing what you staged** — the documented propriety misfit, shown as a trap the learner walks into | **#2** — "commit always commits what I staged" |
-| 2.5 | Amend a bad message — the old commit does not change, a **new one is born**, the label slides | "history is edited in place" |
-| 2.6 | Tracked vs untracked vs ignored | **#9** |
-
-`git status`, `git add`, `git restore --staged`, `git commit`, `git commit --amend`, `.gitignore`
-
-**2.3 and 2.4 are drawn directly from the Gitless misfit analysis and exist nowhere else in the
-landscape.** They are the sharpest available answer to misconception #1.
-
-### Topic 3 — Branches (6 exercises)
-
-**Vocabulary: teach `switch` and `restore` first. `checkout` is taught once, as legacy, in 3.5.**
-This addresses misconception #4 directly and removes the objection that blocks LGB's workplace
-adoption ([issue #1095](https://github.com/pcottle/learnGitBranching/issues/1095)).
-
-| # | Exercise | Kills |
-|---|---|---|
-| 3.1 | `main` is just a label. Create a branch — **nothing happens**. Deliberately anticlimactic | **#3** — "a branch copies my files" |
-| 3.2 | HEAD is "you are here". `git switch`; the marker moves, files rebuild | "checkout changes files as its purpose" |
-| 3.3 | Commit on a branch — the label follows HEAD | "branches move on their own" |
-| 3.4 | **One working directory, one index, shared by all branches** — switch with uncommitted changes and meet the surprise | **#2** — the generality misfit |
-| 3.5 | Detached HEAD — walked into on purpose. Here `checkout` is named as the legacy overloaded verb | **#6, #4** |
-| 3.6 | Delete a branch — the commits are visibly still there | "deleting a branch deletes the work" |
-
-`git branch`, `git switch`, `git switch -c`, `git branch -d`, *(`git checkout` as legacy)*
-
-### Topic 4 — Merging (4 exercises)
-
-| # | Exercise | Kills |
-|---|---|---|
-| 4.1 | Fast-forward: the label just slides | "merge always makes a commit" |
-| 4.2 | True merge: one commit, **two parents**, the diamond | "merge picks a winner" |
-| 4.3 | **Conflict** — base / ours / theirs, resolved hunk by hunk, ending on: the resolution is just a commit | **"a conflict means git broke / I lost work"** |
-| 4.4 | Multi-file conflict, and `--abort` | "once conflicted, you're trapped" |
-
-`git merge`, `git merge --abort`, `git diff`
-
-**4.3 is the flagship exercise** and the highest-risk UI in the product (§12).
-
-### Topic 5 — Undoing (4 exercises)
-
-| # | Exercise | Kills |
-|---|---|---|
-| 5.1 | **Reset**, shown as *which of the three zones get dragged backwards*: soft = label; mixed = label + index; hard = label + index + working dir | **#5** — "the flags are arbitrary" |
-| 5.2 | Revert: the anti-commit. History moves forward to undo | **#5** |
-| 5.3 | Reflog: recover from a hard reset | **#11** — "I destroyed my work" |
-| 5.4 | `git restore` a single file | "undo is all-or-nothing" |
-
-`git reset --soft/--mixed/--hard`, `git revert`, `git reflog`, `git restore`
-
-**5.1 is the design's best free win** — the three-zone layout makes soft/mixed/hard self-evident at
-zero extra cost. No existing tool teaches it this way. **We default `reset` to `--mixed`, as real git
-does. LGB defaults it to `--hard`, which is wrong and which LGB itself warns about in-app.**
-
-### Topic 6 — Rebase (5 exercises)
-
-| # | Exercise | Kills |
-|---|---|---|
-| 6.1 | Rebase is a **copy machine**: originals ghost out, copies born with **new hashes** (pays off 1.4) | **#10** — "rebase moves my commits" |
-| 6.2 | Merge vs rebase side by side — same goal, two shapes — then when to use which | "one is correct, one is wrong" |
-| 6.3 | Interactive rebase: drag a list, graph updates live — squash, reorder, drop | "rebase is black magic" |
-| 6.4 | Cherry-pick one commit elsewhere | "you can only move whole branches" |
-| 6.5 | The golden rule: never rebase shared history — **shown**, not stated | "rebase is always cleaner" |
-
-`git rebase`, `git rebase -i`, `git cherry-pick`
-
-### Topic 7 — Remotes and GitHub (6 exercises)
-
-*The graph region splits into panels with a visible gap. Push and pull literally cross it.*
-
-**Note on weighting:** LGB spends **16 of its 34 levels** on remotes — by far its largest block. That
-is a strong signal this material is harder than it looks. Six exercises is the floor; expect to add
-more after the §13.1 gate rather than fewer.
-
-| # | Exercise | Kills |
-|---|---|---|
-| 7.1 | Clone — the whole graph copies across | "cloning downloads files" |
-| 7.2 | **`origin/main` is your cached memory of their label**, not their label | **#7** — the biggest remote misconception |
-| 7.3 | Push — objects cross the gap, their label moves | "push uploads my folder" |
-| 7.4 | **Fetch alone**: `origin/main` moves, `main` sits still. Then pull = fetch + merge | **#7** — "fetch and pull are the same" |
-| 7.5 | Rejected push (non-fast-forward) — and why | "git is refusing arbitrarily" |
-| 7.6 | Force push — a teammate's commit is orphaned. Then `--force-with-lease` | "`--force` just makes it work" |
-
-`git clone`, `git remote`, `git push`, `git fetch`, `git pull`, `git pull --rebase`,
-`git push --force-with-lease`
-
-**7.4's single animation is the entire fetch/pull lesson.**
-
-### Topic 8 — Working with others (5 exercises)
-
-*Three panels: `You` | `GitHub` | `Another developer`. Simulated, deterministic, scripted. No plot.*
-
-**This is the only serious PR/code-review curriculum in the landscape that will have pictures.**
-GitHub's own materials (MIT-licensed, borrowable) teach this well and visualise nothing.
-
-| # | Exercise | Kills |
-|---|---|---|
-| 8.1 | Fork — a copy on the server under a different owner | "fork and clone are the same" |
-| 8.2 | Feature branch → push → open a PR. **A PR is a request to move a label** | "a PR is magic, unrelated to git" |
-| 8.3 | Review: line comments, changes requested, push again, the PR updates live | "you must reopen a PR to change it" |
-| 8.4 | Merge vs squash vs rebase-merge — **three resulting graph shapes, side by side** | "the merge button is one button" |
-| 8.5 | `main` moved under your open PR; resolve a PR conflict; sync your fork | "my PR is stale = start over" |
-
-**8.4 is taught well nowhere.**
-
-### Topic 9 — Workflows (post-v1)
-GitHub Flow, Git Flow, trunk-based development, hotfix-during-feature, tags and releases.
+### 7.4 Subgoal labels
+Every multi-step procedure is presented with labelled subgoals. Cheap, and the evidence is specific:
+it won't lift the mean, it **halves failure and withdrawal** (§11).
 
 ---
 
-## 7. Core interaction model — "the honest machine"
+## 8. Curriculum
 
-The screen is a literal spatial rendering of git's real data model. Every action is a physical
-movement within it.
+### 8.1 Do not build refutation
 
-**The rule: no generic toolbar.** Every action begins by pointing at the object it happens to,
-because that is how git itself is organised — verbs act on objects.
+Julia Evans polled ~2,500 developers: **50% said a commit is a diff, 42% said a snapshot** — and
+people held **both beliefs simultaneously**: *"in my mind a commit is a diff, but I think it's
+actually implemented as a snapshot."* That is fragmentary intuition (diSessa's "knowledge in pieces"),
+not a stable wrong theory.
 
-### 7.1 Interaction inventory
+**So "this exercise kills misconception X" is the wrong frame** — you cannot refute a belief the
+learner doesn't reliably hold. Refutation works in physics because the misconceptions there are
+stable; git's are not. **Instead: engineer moments where the fragmentary intuition makes a prediction
+that visibly fails.** That is Beat 1's real job.
 
-| Action | Gesture | Mirrored command |
-|---|---|---|
-| Stage a file | Drag file card from working directory → staging zone | `git add <file>` |
-| Unstage | Drag back up | `git restore --staged <file>` |
-| Commit | Click commit button, type message | `git commit -m "…"` |
-| Amend | Commit button → context → amend | `git commit --amend` |
-| Create branch | Node context menu → "branch from here" | `git branch <n>` / `git switch -c <n>` |
-| Switch branch | Click branch tag → "switch", or drag HEAD marker onto tag | `git switch <n>` |
-| Merge | Drag branch tag onto another branch tag | `git merge <n>` |
-| Rebase | Branch tag context menu → "rebase onto…" | `git rebase <n>` |
-| Cherry-pick | Drag a node onto a branch tag | `git cherry-pick <sha>` |
-| Reset | Drag branch tag onto an older node → choose zone depth | `git reset --soft/--mixed/--hard <sha>` |
-| Revert | Node context menu → "revert" | `git revert <sha>` |
-| Checkout commit | Drag HEAD marker onto a node (→ detached) | `git checkout <sha>` |
-| Delete branch | Branch tag context menu → "delete" | `git branch -d <n>` |
-| Push | Drag branch tag across the gap → remote panel | `git push origin <n>` |
-| Fetch | "Fetch" affordance on the remote panel | `git fetch` |
-| Pull | Drag remote branch tag back across the gap | `git pull` |
-| Clone | Drag whole remote repo panel → your side | `git clone <url>` |
-| Open PR | Button on a pushed branch in the GitHub panel | *(GitHub UI, not a git command)* |
+### 8.2 The evidence base for what's hard
 
-Ambiguous gestures (tag-onto-tag could mean merge or rebase) resolve with a small choice popover,
-never a guess. The popover is itself a teaching moment.
+Julia Evans' polls (n≈1,000–2,500 each) — the best quantitative misconception data that exists:
 
-### 7.2 Constrained affordances per exercise
-Borrowed from Oh My Git!'s `cards` mechanic: **each exercise declares which operations are
-available.** Constraining the affordance space is scaffolding, it prevents flailing, and it makes the
-`Predict` beat answerable. Sandbox enables everything.
+| Question | Result |
+|---|---|
+| **What is a branch?** | **Only 15% correct** ("the commit at the end"); 58% "the commits that branch off" |
+| **How do you think of HEAD?** | **67% wrong** ("pointer to the current commit"); 25% correct ("pointer to the current branch") |
+| **Commit: diff or snapshot?** | **50% diff / 42% snapshot** |
+| Conflict code-order differs merge vs rebase? | **69% didn't know** |
+| **Confidence about what a commit is** | **82% confident — the one term people feel fine about** |
+| Shipped a production bug from bad conflict resolution | **61%** |
+| Lost work to git in the last year or two | **17%** |
 
-### 7.3 Drag is never the only way
-Every drag has an equivalent context-menu item — required for accessibility (§11) and touch, and free
-because both paths dispatch the same engine action.
+**Two design consequences.** *Commit is our only solid ground — build outward from it, don't belabour
+it.* And *branch and HEAD are worse than assumed* — 15% and 25% correct.
+
+### 8.3 Undo is the spine
+
+Three independent methods agree, and it isn't close:
+- **17 of the top 50 Stack Overflow git questions are undo/recovery — 44% of 210M views.**
+- The most-viewed git question ever: *"How do I undo the most recent local commits?"* — **16.7M views**.
+- A study of **80,370** git questions: the five most-viewed commands are `revert`, `reflog`, `stash`,
+  `clean`, `reset` — **all recovery**.
+- **8 of 9 "Oh Shit, Git!?!" entries** are recovery.
+- Church: the emergent experience is **fear**; professionals re-clone to recover.
+
+**So recovery is not topic 5 of 8. It is topic 3 of 9, and a permanent guarantee running through every
+later topic** — every topic has an undo path, and reflog is always reachable. This serves Goal B (§1.1)
+directly, and **nobody teaches git this way.**
+
+### 8.4 The topics
+
+*Order: build from the solid ground (commit) → the minimum refs needed → the safety guarantee → then
+everything else, each with an undo path.*
+
+**Topic 1 — Commits and the chain** *(4)*
+`init`; snapshot → node → chain; time-travel; anatomy (full tree + parent + hash, diff **computed** on
+request). Commit is where 82% feel confident — establish, don't belabour. Kills: diff-vs-snapshot.
+The three zones appear mechanically here; they are *understood* in topic 4.
+
+**Topic 2 — Labels and HEAD** *(5)*
+`main` is a sticky note — creating a branch does **nothing** (deliberately anticlimactic). HEAD is
+"you are here". Switching moves the marker; files rebuild. Committing moves the label. Detached HEAD,
+walked into on purpose. **Only 15% and 25% of developers get these right — this topic is doing more
+work than its size suggests.**
+
+**Topic 3 — Nothing is ever lost** *(4)* — **THE SPINE**
+Moving a label doesn't delete a commit. Unreachable ≠ gone. **Reflog, early.** Recover from a
+catastrophic reset before you have ever been asked to run one. Deliberate disasters, then rescue.
+*This is the confidence axis (§1.1 Goal B) and the #1 documented problem, addressed together.*
+
+**Topic 4 — Files and the index** *(6)*
+The highest-confidence misconception in the literature — named in the 2012 survey's free-text hate
+list; two of Perez De Rosso's misfits; Gitless deleted it and users called that *"a major reduction in
+complexity"*; Hamano stated in **2006** that the three-level model is a prerequisite and that Cogito
+hid the index from beginners.
+- Why staging exists: two unrelated changes → two clean commits
+- **The index holds a snapshot, not a pointer**: stage, edit again, commit — the **staged** version lands
+- **`git commit <file>` commits the *working* version, bypassing what you staged** — the documented
+  propriety misfit, walked into as a trap
+- Tracked ≠ staged ≠ committed; `.gitignore`
+- Amend: the old commit doesn't change; a new one is born and the label slides
+
+**Topic 5 — Undoing** *(4)*
+**Reset shown as which zones get dragged backwards**: soft = label; mixed = label + index; hard =
+label + index + working dir. The three-zone layout makes this self-evident for free, and nobody
+teaches it this way. **We default to `--mixed`, as real git does — LGB defaults to `--hard`, which is
+wrong.** Then revert (the anti-commit), and `restore`.
+
+**Topic 6 — Merging and conflicts** *(5)*
+Fast-forward (the label slides — now the name means something); the two-parent diamond; **conflicts**.
+**Promoted on evidence:** 61% have shipped a production bug from bad conflict resolution; 32% of
+students called conflicts *the* difficulty and **re-cloned to escape**; Gitless's largest win was
+conflicts (54.55% → 90.91%). **Conflicts are a three-way problem taught with two-way markers** — we
+show the merge base always (this is what `zdiff3` does, and users call it *"totally indispensable"*).
+Plus `--abort`.
+
+**Topic 7 — Rebase** *(4)*
+**Not "merge vs rebase"** — the data says that's a *preference* split (41% rebase / 29% merge), not a
+knowledge gap. **Build "what rebase does to commit identity"**: originals ghost out, copies born with
+**new hashes**. Then interactive rebase; cherry-pick; the golden rule, shown.
+
+**Topic 8 — Remotes and GitHub** *(6)*
+The graph splits into panels across a visible gap.
+- Clone
+- **`origin/main` is your *cached memory* of their label** — Church's "hidden dependency"; `git status`
+  says *"up to date"* while hundreds of commits behind. **Show three things: local, the origin/ cache,
+  and the actual remote.** The two-repo mental model is what breaks.
+- Push; **fetch alone** (watch `origin/main` move while `main` sits still — one animation, the whole
+  lesson); pull = fetch + merge
+- Rejected push — note git's error is **identical** whether you're merely behind or actually diverged
+- Force push; `--force-with-lease`
+
+**Topic 9 — Working with others** *(5)*
+Three panels: `You` | `GitHub` | `Another developer`. Simulated, deterministic, no plot.
+Fork; **a PR is a request to move a label**; review with follow-up commits; **merge vs squash vs
+rebase-merge as three graph shapes side by side** (taught well nowhere); `main` moving under an open
+PR; syncing a fork.
+
+**43 exercises.** Vocabulary throughout: **`switch`/`restore` first; `checkout` named once as legacy.**
+This is settled by git's own maintainer — commit `d787d31`: *"'git checkout' doing too many things is
+a source of confusion for many users (and it even bites old timers sometimes)."*
 
 ---
 
-## 8. Architecture
+## 9. Interaction and screen
 
-### 8.1 A purpose-built engine, not a real git
+The screen is a spatial rendering of git's data model; actions are movements within it. **No generic
+toolbar** — every action begins by pointing at the object it happens to, which is how git is organised.
 
-Real in-browser git implementations were evaluated and **rejected on evidence**:
+**Layout:** working directory + staging (left, drag down between them) · the graph (centre) ·
+inspector (right) · **command composer** (bottom, §7.2). Floating objective card with subgoal labels
+(§7.4); anticipate/explain prompts appear inline.
 
-- **isomorphic-git** (MIT, 8,283★) **has no rebase** ([issue #189, open since 2018](https://github.com/isomorphic-git/isomorphic-git/issues/189)),
-  **no revert, no reflog** — precisely the concepts topics 5 and 6 exist to teach. We would hand-write
-  them anyway, inside someone else's data model.
-- **Real SHAs are content + timestamp + author addressed, therefore nondeterministic**, which breaks
-  replay, snapshot tests, and goal checking.
-- **Any real GitHub I/O needs a CORS proxy** — GitHub sends no CORS headers on git endpoints. That
-  violates "static, no backend."
-- **wasm-git** is GPLv2+linking-exception, still `0.0.16`, ~1 MB WASM. **gitoxide/gix has no wasm
-  target** (maintainer estimate: *"a year or two"*). **js-git is dead** (frozen 2017-01-24).
+**Gestures:** drag to stage · drag tag onto tag to merge · drag tag to an older node to reset (choose
+zone depth) · drag node onto tag to cherry-pick · drag tag across the gap to push. Ambiguous gestures
+resolve with a choice popover, never a guess. **Every drag has a keyboard and menu equivalent** —
+required for §12, free because both dispatch the same engine action.
 
-We write a small model that is **honest about what it shows**: content-addressed objects (blob, tree,
-commit), real parent pointers, real refs, a real index, a real reflog.
+**Constrained affordances per exercise** (Oh My Git!'s `cards` idea): each exercise declares which
+operations exist. Scaffolding, and it makes Beat 1 answerable.
 
-**Hashing — the resolution of the determinism/fidelity tension.** We hash **content only**, excluding
-timestamp and author. This is deterministic (replay, snapshot tests, and level checks all work) *and*
-pedagogically honest (changing one character genuinely changes the hash, which is what makes 1.4 and
-6.1 land). Real git's nondeterminism buys us nothing and costs us everything.
+---
 
-Estimated **4,000–6,000 lines**. For reference, LGB's engine is 3,448 lines *without* an index,
-files, conflicts, or reflog.
+## 10. Architecture
 
-### 8.2 The engine is a pure function
+### 10.1 A purpose-built engine
+
+Real in-browser git was evaluated and rejected on evidence: **isomorphic-git has no rebase**
+([issue #189, open since 2018](https://github.com/isomorphic-git/isomorphic-git/issues/189)), **no
+revert, no reflog** — exactly what topics 3, 5 and 7 teach. **Real SHAs include a timestamp and are
+therefore nondeterministic**, breaking replay, snapshot tests, and goal checks. **Real GitHub I/O needs
+a CORS proxy**, violating "no backend." wasm-git is GPL and ~1 MB; gitoxide has no wasm target; js-git
+died in 2017.
+
+**Hashing: content only, excluding timestamp and author.** Deterministic *and* honest — changing one
+character still changes the hash, which is what makes topics 1 and 7 land.
+
+Estimated 4,000–6,000 lines. LGB's engine is 3,448 **without** files, index, conflicts, or reflog.
+
+### 10.2 The engine is a pure function
 
 ```
 reduce(state: RepoState, action: GitAction) => { state: RepoState, events: Event[] }
 ```
 
-Immutable state in, new state plus an event list out. No I/O, no clock, no randomness, no UI
-knowledge. This single decision buys:
+No I/O, no clock, no randomness, no UI knowledge. Buys undo/rewind, event-driven animation, goal
+checking, deterministic simulated collaborators, and a fully testable core.
 
-- **Undo / rewind / time-travel** — keep prior states
-- **Animation** — events describe what changed, so the renderer never re-derives it
-- **Goal checking** — a predicate over `RepoState`
-- **Simulated collaborators** — scripted `GitAction`s, fully deterministic
-- **Testability** — the entire engine is unit-testable with no DOM
+### 10.3 Levels are data
+Initial state · objective + **subgoal labels** · **anticipate prompt** · **explain prompt (fill-in
+holes, no reveal)** · goal predicate · allowed actions · progressive hints (Githug's pattern — the only
+tool with it) · **misconception traps** · collaborator script.
 
-Nothing outside the engine knows how git works.
+**Goal predicates assert over repo state, never graph geometry, and are hash-agnostic** — rebase and
+cherry-pick legitimately produce different hashes.
 
-### 8.3 Levels are data
+### 10.4 Stack
 
-A level is a declarative record: initial `RepoState`, objective text keys, **predict prompt**,
-**explain prompt + distractors**, goal predicate, **allowed actions** (§7.2), ordered progressive
-hints (borrowed from Githug, which is the only tool that does this), **misconception traps** (§8.4),
-and — for topics 7–8 — a collaborator action script.
+| Concern | Choice |
+|---|---|
+| Build / UI | Vite · React · TypeScript · Tailwind |
+| Graph | Custom layout + `d3-selection`/`d3-transition`, keyed by SHA (~17 KB gz) |
+| i18n | `@lingui/core` (28 KB, ICU), per-locale bundles |
+| Persistence | localStorage + **export code** — Safari ITP evicts after 7 days idle |
+| Hosting | Netlify static |
 
-**New levels require no programmer, and translators never touch source.**
+Rejected: PixiJS (70 MB); gitgraph.js (archived 2024); dagre/elk (§10.5).
 
-**Goal predicates assert over repo *state*, never over graph geometry** — *"`feature` is merged into
-`main` and no work is lost"*, not *"node at column 2"*. Multiple valid solutions pass. Comparison is
-**hash-agnostic** (LGB's `compareAllBranchesHashAgnostic` is the right idea and the right name):
-rebase and cherry-pick legitimately produce different hashes, and a goal check that cares about hash
-identity would reject correct answers.
+### 10.5 Graph layout — no layout engine
 
-### 8.4 Misconception diagnosis — not binary grading
+dagre and ELK globally optimise crossings, so **adding one commit relocates untouched nodes**, and
+neither exposes a stability constraint. **In a teaching tool the animation is the claim** — a reflow
+that moves commits the learner didn't touch asserts something false. This is a correctness objection,
+not a performance one.
 
-**Every tool in the landscape grades with a binary predicate** (LGB compares trees, Oh My Git! runs
-bash, Githug returns booleans). Win or lose, with no explanation of *why*.
-
-Because we own the model, a level can declare **misconception traps**: predicates that match
-*known-wrong* end states, each mapped to targeted feedback.
-
-> *"You merged where a rebase was wanted. Look at the shape — here's the difference."*
-> *"You reset `--hard` and the working directory went with it. That work isn't gone; here's reflog."*
-
-The `Explain` beat (§5.2) feeds the same system: distractors are drawn from §6.1, so choosing one is
-itself a diagnosis. **This is a differentiator nobody in the landscape has, and it is cheap because
-the model is ours.**
-
-### 8.5 Stack
-
-| Concern | Choice | Reason |
-|---|---|---|
-| Build | Vite | Fast, static output, zero-config Netlify |
-| UI | React + TypeScript | Types are load-bearing for the engine |
-| Styling | Tailwind | Fast, consistent, logical properties available |
-| State | Zustand | Small; the engine holds the real state |
-| Graph | `d3-selection` + `d3-transition` + `d3-path` (~17 KB gz) | Keyed by SHA — enter/update/exit maps 1:1 onto git semantics |
-| Layout | Custom (§9) | No layout engine — see §9 |
-| i18n | `@lingui/core` (28 KB, MIT, ICU) | Compile-time extraction; per-locale bundles |
-| Persistence | localStorage + export code | §8.6 |
-| Hosting | Netlify static | No backend, no cost |
-
-Rejected: **PixiJS** (70 MB unpacked, absurd here); **gitgraph.js** (archived 2024-07-13);
-**d3-hierarchy** (trees, not DAGs).
-
-### 8.6 Persistence
-
-Versioned localStorage: completed exercises, current topic, language, settings, predict-skip flags. A
-schema version field allows migration; corrupt data resets to defaults rather than crashing.
-
-**Safari ITP evicts localStorage after 7 days without interaction.** A learner returning after a
-fortnight would silently lose everything. Mitigation: an **export/import progress code** (a short
-encoded string), offered proactively at topic boundaries. No PII, no cookies, no analytics without an
-explicit later decision — which keeps GDPR/KVKK obligations at zero.
+Row = **topological order** (Kahn's); column = **sticky per-branch lane**, identity persisted across
+states. Stability by construction. **SVG, not canvas** — free hit-testing, theming, and real
+accessibility. Ghost nodes for rebase originals and unreachable commits: how "nothing is destroyed" is
+*shown* rather than claimed (§8.3).
 
 ---
 
-## 9. Graph visualisation
+## 11. Success criteria
 
-**Orientation:** vertical, **newest at top**. Chosen over left-to-right because it stays readable at
-depth and matches real git tooling.
+**We measure the left tail, not the mean.** The subgoal classroom study (N=265) is the model: quizzes
+improved (d=0.44) but **exams did not** (d=0.20, p=.24) — and yet **withdrawal and failure roughly
+halved**, and variance dropped. *"Subgoals compress the left tail rather than lift the mean."* For a
+product whose whole purpose is people who currently bounce off git, **that is the win condition.**
 
-### 9.1 No layout engine — and the reason is pedagogical
+### 11.1 What we will measure at the gate
+- **Completion and drop-off**, per topic — the primary metric
+- Anticipate-beat accuracy over time (the concept inventory, §7.3)
+- Whether a genuine non-git-knower finishes topics 1–4 unaided
+- **Self-reported fear before/after** (Goal B, §1.1) — Church's axis, which no git tool has measured
 
-dagre and ELK globally optimise edge crossings, so **adding one commit can relocate untouched nodes.**
-Neither exposes a stability constraint.
+### 11.2 The honesty clause
 
-**In a teaching game the animation *is* the lesson.** A reflow that moves commits the learner did not
-touch actively teaches something false. This is not a performance objection; it is a correctness one.
+**Time-on-task confounds this entire literature and it will confound us.** Sorva's group spent 1.8× as
+long and he credits that for part of his one significant result. Bisra: took-longer g=0.72 vs
+equal-time g=0.41.
 
-Git DAGs are trivial to lay out anyway:
-- **Row = topological order** (Kahn's algorithm, ~15 lines)
-- **Column = sticky per-branch lane**, with lane identity persisted across states
-
-Stability by construction. `main` holds the leftmost lane and never moves.
-
-### 9.2 Rendering
-**SVG, not canvas.** Fifty nodes is nothing, and SVG gives free hit-testing, CSS theming, and **real
-accessibility** — the thing LGB has failed at for four years. Nodes and labels are DOM/SVG elements
-carrying real text, keyed by SHA.
-
-### 9.3 Elements
-- **Commit node** — circle, short hash, message on hover/select. Merge commits visibly distinct.
-- **Branch tag** — attached to its node, coloured per branch, always carrying its name as text.
-- **HEAD** — its own marker, attached to a tag. When detached, visibly unmoored — **the visual is the
-  explanation**.
-- **Remote-tracking tag** (`origin/main`) — distinct, dimmer class, marked as a *memory*.
-- **Ghost node** — faded; rebase originals and unreachable commits. Ghosts are how "nothing is
-  destroyed" is *shown* rather than claimed. Ghosts are why we implement reflog (which LGB and
-  isomorphic-git both lack).
-- **Predicted node** — the learner's §5.2 prediction, rendered alongside the truth during Observe.
-
-### 9.4 Animation
-Driven entirely by engine events (§8.2), never hand-authored per level. All animation respects
-`prefers-reduced-motion`, degrading to instant transitions with a persistent change highlight.
+**If our learners do better only because they spent longer, we have not built a better teacher — we
+have built a more attractive one, and the alternative could have bought that attention more cheaply.**
+Any evaluation must record time-on-task. Sorva's warning stands over this whole project: *"Sometimes,
+it is the discomfited learner who has made more progress than the one who 'likes it'."* **Liking is not
+learning.** Entertainment value was not a significant moderator in Sitzmann's meta-analysis, and
+high-entertainment games scored numerically *lower*.
 
 ---
 
-## 10. Internationalisation
+## 12. Accessibility
 
-English and Turkish are both first-class from the vertical slice onward.
+**A differentiator, not compliance.** LGB [issue #960](https://github.com/pcottle/learnGitBranching/issues/960)
+— the graph is unreachable by screen readers, and graph changes are unannounced — has been open since
+2022. **LGB's entire pedagogy is invisible to blind learners.** An accessible git visualiser would be
+the only one.
 
-### 10.1 Git terminology: code-switch, never translate
+Keyboard equivalent for every drag (§9) · colour never the only channel · an ordered, navigable text
+representation of the graph · **an ARIA live region announcing state changes**, which falls out of
+§10.2's event stream · `prefers-reduced-motion` · WCAG AA in the dark theme. **Note WCAG 2.2 §2.5.7
+(Dragging Movements) requires the non-drag path** — this is a requirement, not a nicety.
 
-Turkish developers say *"branch'e commit atmak."* Nobody says *"şube."* Inventing Turkish equivalents
-teaches vocabulary nobody uses and leaves learners unable to talk to other developers. LGB's Turkish
-localisation does this correctly — `branch'ler (dallar)`, `commit'e` — glossing once, then
-code-switching with agglutinative suffixes.
+---
 
-**Rule:** git terms stay English; surrounding prose is translated. Each language ships a **glossary
-file** deciding this per term, so a language that *does* translate a term can, without a code change.
+## 13. Internationalisation
 
-**Quality note:** LGB's Turkish contains real errors (`çalımanının` for *çalışmamın*; `hg summit` for
-`hg summary`). A reviewed translation is a cheap, visible quality edge.
+**Git terms stay English; the prose around them is translated.** Turkish developers say *"branch'e
+commit atmak"*; nobody says *"şube"*. Inventing equivalents teaches vocabulary nobody uses and leaves
+learners unable to talk to other developers. LGB's Turkish does this correctly. Each language ships a
+**glossary file** deciding this per term.
 
-### 10.2 No sentence assembly
+⚠️ **Open question for the gate:** this optimises for the developer tier. Whether a Turkish teenager
+with no English parses *"commit'e"* is untested, and tier 1 is half our audience.
 
-Turkish is agglutinative and verb-final; `"Commit " + n + " files"` produces garbage. **Every sentence
-is one complete translatable unit** with ICU placeholders. String concatenation for user-facing text
-is a lint error.
-
-**Turkish has two cardinal plural categories (`one`, `other`)** — `{count} commit` cannot be
-collapsed to a single form. (Turkish *ordinals* are `other`-only, so *"3. seviye"* needs no
-branching.)
-
-### 10.3 Mechanics
-- **Per-locale route prefixes** (`/tr/`, `/en/`) with per-locale bundles. LGB inlines all 26 locales
-  into every level file — a measured 15.1× tax, and a 3.06 MB bundle where every Turkish learner
-  downloads all 26 languages. We ship 1/26th of that.
-- **Language negotiation on the bare root uses 302, never 301.** A 301 permanently pins a user to a
-  wrongly-guessed language. (An HN commenter complains about exactly this on LGB.)
-- Language switch mid-exercise preserves all progress and state.
-- CSS logical properties throughout, so RTL stays possible.
-- **The graph container is pinned `dir="ltr"` even in RTL locales.** Git's arrow of time is
-  universal; mirroring the DAG would confuse Arabic-speaking developers, not help them.
+- **No sentence assembly.** Turkish is agglutinative and verb-final. Every sentence is one
+  translatable unit with ICU placeholders. **Turkish has two cardinal plural categories (`one`,
+  `other`)** — `{count} commit` cannot be collapsed. (Ordinals are `other`-only.)
+- **Per-locale bundles, `/tr/` and `/en/` prefixes.** LGB inlines all 26 locales into every level file
+  — a measured **15.1× tax**, a 3.06 MB bundle, and every Turkish learner downloads 25 languages they
+  don't read.
+- **Language negotiation uses 302, never 301.** A 301 permanently pins a user to a wrong guess.
+- CSS logical properties throughout; **the graph is pinned `dir="ltr"` even in RTL locales** — git's
+  arrow of time is universal.
 - No `text-transform` anywhere — Turkish dotted/dotless İ/ı breaks under naive casing.
-- All formatting via `Intl`.
-- A missing key falls back to English **and fails CI**; it never renders a raw key.
-- Adding a language = adding files. Contributor-friendly by construction.
+- Missing key → English fallback **and CI failure**.
+- **LGB's Turkish has real errors** (`çalımanının` for *çalışmamın*; `hg summit` for `hg summary`). A
+  reviewed translation is a cheap, visible quality edge.
 
 ---
 
-## 11. Accessibility
-
-**This is a differentiator, not just compliance.** LGB issue #960 — *"if the graph changes (e.g. `git
-commit`), the change should be announced"* — has been open since 2022. **LGB's entire pedagogy is
-invisible to blind learners.** An accessible git visualiser would be the only one in existence.
-
-- **Every drag has a keyboard and menu equivalent** (§7.3) — same engine action, no duplicated logic
-- **Colour is never the only channel** — branch identity carries colour + text label + lane position
-- **The graph has a real text representation**: an ordered, navigable list of commits and their
-  relationships. This is why nodes are DOM/SVG with real text (§9.2).
-- **An ARIA live region announces every state change** — this is exactly what LGB lacks, and it falls
-  out of §8.2's event stream for free
-- `prefers-reduced-motion` honoured throughout
-- Full keyboard navigation; visible focus rings; WCAG AA contrast in the dark theme
-
----
-
-## 12. Risks
+## 14. Risks
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| **The core bet fails** — manipulating the model doesn't teach better than prose | **Critical** | The vertical slice (§13) exists to test this. Test on a real non-git-knowing human before building topics 3–8. |
-| **LGB PR #1379 lands and closes the staging gap** | **High** | Already assumed (§2.2). Differentiation rests on §5, §8.4, i18n and a11y — not on staging. |
-| Conflict UI (4.3) is intrinsically hard to make clear | High | Prototype 4.3 early, out of order, as a spike |
-| Engine is larger than estimated (4–6k lines) | Medium | It is step 1 and test-first; overrun surfaces immediately, not late |
-| Graph layout gets ugly at depth (topic 8) | Medium | Sticky lanes (§9.1) make this structural; prove against worst-case fixtures before content production |
-| The predict/explain beats feel like homework | Medium | §5.3 skip control; test at the gate |
-| Scope creep back toward a story game | Medium | §1.3 test; §3.3 out-of-scope list |
-| Translation drifts behind English | Medium | Missing key = CI failure; per-locale bundles |
-| Safari silently evicts progress | Low | §8.6 export code |
+| **We build Python Tutor** — a lovely visualisation that teaches nothing | **Critical** | §2 is the governing law; every win condition audited against it; §11.1 measures it |
+| **The generation tasks feel like homework and people quit** | **High** | Drop-off is the primary metric; scaffolding fades on measured competence (§7.3) |
+| Conflict UI (topic 6) is intrinsically hard | High | Prototype out of order, as a spike, before the slice |
+| We win only by buying time-on-task | High | §11.2 — record it, or the result is uninterpretable |
+| LGB [PR #1379](https://github.com/pcottle/learnGitBranching/pull/1379) closes the staging gap | Medium | Assumed. Differentiation is §7, undo-first, i18n and a11y — never staging alone. |
+| Engine larger than 4–6k lines | Medium | It's step 1, test-first; overrun surfaces immediately |
+| Turkish code-switching fails tier 1 | Medium | §13 open question; test at the gate |
+| Translation drifts | Medium | Missing key = CI failure |
 
 ---
 
-## 13. Build order
+## 15. Build order
 
-**Principle: prove the risky things first; be deployed from day one.**
+**Prove the risky things first; deployed from day one.**
 
-| Step | Deliverable | Proves |
-|---|---|---|
-| 0 | Empty page live on Netlify | The pipeline is never a late surprise |
-| 1 | **Engine, standalone, test-first** — objects, deterministic hashing, refs, HEAD, index, reflog, commit, branch, switch | The foundation. A bug here is invisible and poisonous. |
-| 1b | **Differential test harness**: run identical command sequences against **real `git` in Node**, assert our DAG matches | Fidelity, mechanically, forever |
-| 2 | Static graph renderer — topological rows, sticky lanes, tags, HEAD | Layout survives real shapes |
-| 3 | Event-driven animation | Animation is automatic, not per-level |
-| 4 | Interaction — drag to stage, context menus, constrained affordances | The core gesture feels right |
-| 5 | Command mirror | Commands surface without typing |
-| 6 | Level system — load, goal-check (hash-agnostic), hints, **predict/explain beats**, **misconception traps** | The four-beat loop and the differentiator |
-| 7 | i18n harness, EN + TR wired through, per-locale bundles | Multilingual is structural |
-| 8 | Accessibility pass: live region, keyboard paths, text graph | The a11y differentiator is structural, not retrofitted |
-| 9 | **Topics 1 + 2 complete, both languages, deployed** | **The vertical slice** |
+| Step | Deliverable |
+|---|---|
+| 0 | Empty page live on Netlify |
+| 1 | **Engine, standalone, test-first** — objects, deterministic hashing, refs, HEAD, index, **reflog**, commit, branch, switch, reset |
+| 1b | **Differential harness**: same command sequences against **real `git` in Node**, assert our DAG matches. Real git in the test suite, never the runtime. |
+| 2 | Graph renderer — topological rows, sticky lanes, tags, HEAD, ghosts |
+| 3 | Event-driven animation |
+| 4 | Interaction — drag to stage, context menus, constrained affordances |
+| 5 | **Command composer** (§7.2) |
+| 6 | Level system — goal-check, hints, subgoals, **anticipate/explain beats**, **misconception traps** |
+| 7 | i18n harness, EN + TR, per-locale bundles |
+| 8 | Accessibility — live region, keyboard paths, text graph |
+| 9 | **Topics 1–4 complete, both languages, deployed** |
 
-**Step 1b is cheap and worth more than it looks.** Keeping real git in the *test suite* rather than
-the *runtime* gives us fidelity without any of §8.1's costs.
+**The slice is topics 1–4, not 1–2.** Topic 3 is the spine and topic 4 is the hardest misconception;
+a slice that omits either tests nothing that matters.
 
-### 13.1 The gate
+### 15.1 The gate
 
-**Stop at step 9 and test with real people, including at least one who genuinely does not know git.**
+**Stop at step 9. Test with real people, including at least one who genuinely does not know git.**
+Record time-on-task (§11.2).
 
-Two bets are being tested, not one:
-1. That manipulating the model teaches staging better than a paragraph does (§1).
-2. That the predict/explain beats improve retention without feeling like homework (§5).
+Three bets are on the table:
+1. That the generation tasks teach (§2, §7) — *the product*
+2. That they don't feel like homework — *the drop-off risk*
+3. That Turkish code-switching works for tier 1 (§13)
 
-Both are cheap to test after step 9 and ruinously expensive to test after eight topics are built on
-top of them. **Everything after step 9 is content production**, which is fast once the machine works.
+All three are cheap now and ruinous after nine topics are built on top of them. Everything after step 9
+is content production, which is fast once the machine works.
 
-The gate has a real failure mode worth naming: if the four-beat loop tests badly, §5 — the primary
-differentiator — is wrong, and the product needs rethinking before, not after, topics 3–8.
-
-### 13.2 After the gate
-Topics 3→4→5→6→7→8 in order, then Sandbox, then Reference. Sandbox and Reference are largely free by
-then — both reuse the same screen and engine. Expect topic 7 to grow (§6, Topic 7 note).
+**A named failure mode:** if the loop tests badly, §7 is wrong and the product needs rethinking —
+before topics 5–9, not after.
 
 ---
 
-## 14. Deferred, deliberately
+## 16. Deferred
 
-### 14.1 Typing real commands
-The command mirror is read-only in v1. A later **expert mode** could flip it into a real input,
-letting a learner graduate to typing within the same exercises. The engine already accepts actions
-from any source, so this needs a parser and nothing else. **Designed for, not built.**
-
-### 14.2 Other future candidates
-Real multiplayer (the state model stays compatible); accounts and cross-device sync; Topic 9
-workflows; `git stash`; classroom/teacher mode; shareable sandbox states via URL.
+**Expert mode** — the composer fades to a real prompt; the engine already accepts actions from any
+source, so this needs a parser and nothing else. **Designed for, not built.** Also: real multiplayer
+(state model stays compatible); accounts; workflows (Git Flow, trunk-based); `git stash`; classroom
+dashboard; shareable sandbox URLs.
 
 ---
 
-## 15. Prior art and licensing
+## 17. Prior art and licensing
 
 | Project | License | Borrowable |
 |---|---|---|
-| Learn Git Branching | **MIT** | Code + level design + `hashAgnostic` goal-checking idea |
-| **Oh My Git!** | **Blue Oak 1.0.0** (OSI, MIT-equivalent) | **Level design — the deepest curriculum available, and trapped in a desktop app nobody installs. Our single best content source.** |
-| GitHub Skills / Learn | **MIT** (GitHub, Inc.) | PR + code-review curriculum (topic 8) |
+| Learn Git Branching | **MIT** | Code, level design, hash-agnostic goal checking |
+| **Oh My Git!** | **Blue Oak 1.0.0** | **The deepest curriculum available, trapped in a desktop app nobody installs. Its typed-hole cards are the proof for §7.2. Our best content source.** |
+| GitHub Skills / Learn | **MIT** | PR + code-review curriculum (topic 9) |
 | Githug | **MIT** | 55 level ideas + the progressive-hint pattern |
-| visualizing-git / explain-git-with-d3 | **MIT** | d3 DAG rendering; it has reflog, which LGB lacks |
+| visualizing-git / explain-git-with-d3 | **MIT** | d3 DAG rendering; it has reflog |
 | gitexercises | **MIT** | 23 task ideas |
-| Git-it | **BSD-2** | 11 challenge ideas |
-| **git-sim** | **GPL-2.0** | ⚠️ **Do not copy code** into a permissive project. Reference only. |
-| Devlands | proprietary | ❌ Closed-source commercial competitor (2025, 3D voxel, funded) |
+| **git-sim** | **GPL-2.0** | ⚠️ **Do not copy code.** Reference only. |
+| Devlands | proprietary | ❌ Funded closed-source competitor |
 
-**Porting Oh My Git!'s curriculum shape to the web is the highest-leverage content move available.**
-
-### 15.1 Possible evaluation partner
-Eray Tüzün's [BILSEN group](https://eraytuzun.com/) at **Bilkent University (Turkey)** built and
-empirically evaluated CRSG, a browser-based serious game for teaching **code review**, with 132
-students (ESEC/FSE 2020). It is the only rigorous prior art on the PR-teaching half of this idea, and
-it is local. Worth contacting for evaluation at the §13.1 gate.
+**Possible evaluation partner:** Eray Tüzün's [BILSEN group](https://eraytuzun.com/) at **Bilkent
+University** built and evaluated CRSG — a browser-based serious game teaching **code review** — with
+132 students (ESEC/FSE 2020). The only rigorous prior art on the PR half of this idea, and it's local.
 
 ---
 
-## 16. Decisions on record
+## 18. Decisions on record
 
 | Decision | Choice | Rejected |
 |---|---|---|
-| Audience | Tiered, one product | Single-tier |
-| Scope | Git core + GitHub collaboration | Git-only; all-of-GitHub |
-| Accounts | None; localStorage + export code | Optional/required accounts |
-| Collaboration | Simulated, deterministic | Real multiplayer |
-| Framing | Direct visual teaching | Story campaign; plain-word prologue; boss levels |
-| Interaction | The honest machine | Goal-graph puzzler; card battler |
-| **Primary differentiator** | **Engagement levels 4–6 + misconception diagnosis** | **Staging (LGB is shipping it)** |
-| Pedagogy | Four-beat loop: predict → observe → do → explain | Passive demo + binary grading |
-| Curriculum order | Files before branches | Branches first (LGB) |
-| Vocabulary | `switch`/`restore` first; `checkout` as legacy | `checkout`-first (LGB) |
-| Commands | Read-only mirror | Typing input; post-hoc reveal; hidden |
-| Art | Clean, technical, dark | Playful; retro pixel |
-| Engine | Purpose-built, deterministic content-only hashing | isomorphic-git; wasm-git; gitoxide; js-git |
-| Real git | In the test suite (differential), not the runtime | In the runtime |
-| Graph | Custom: topological rows + sticky lanes | dagre / elk / react-flow (unstable reflow) |
-| Renderer | SVG + d3-selection/transition, keyed by SHA | Canvas; PixiJS; gitgraph.js |
-| i18n | Lingui, per-locale bundles, `/tr/` `/en/` prefixes | Inlined all-locale bundles (LGB's 15.1× tax) |
-| Git terms | Untranslated, code-switched, glossary-controlled | Fully localised terminology |
-| First release | Vertical slice (topics 1–2) | Full v1 |
+| **Governing law** | **Whatever the tool forces you to generate is what it teaches** | "Make the model visible and intuition follows" |
+| Goals | Model **and** calibrated confidence | Model transfer alone |
+| Positioning | **Supplement, course-friendly** | Standalone (d=−0.12) |
+| **Primary mechanism** | **Guided self-explanation + misconception-naming feedback** | Engagement levels 4–6 (miscited); staging (LGB is shipping it) |
+| Loop | Anticipate (predict **+** why) → act → guided explain | Predict alone (0.047); multiple-choice explain (g=0.24 n.s.) |
+| Commands | **Fill-in-the-holes composer** | Read-only mirror (passive viewing); free typing |
+| Curriculum spine | **Undo, at topic 3** | Undo at topic 5 |
+| Framing | Predict-and-fail | Refutation ("you think X, actually Y") |
+| Success metric | **Left-tail compression: completion, drop-off, fear** | Mean score |
+| Sandbox | A mode, not the front door | Sandbox-first (*"replicatably false"*) |
+| Vocabulary | `switch`/`restore` first | `checkout`-first (LGB) |
+| Engine | Purpose-built, content-only hashing | isomorphic-git; wasm-git; gitoxide |
+| Real git | Test suite (differential) | Runtime |
+| Graph | Topological rows + sticky lanes; SVG | dagre/elk (unstable reflow); canvas |
+| Art | Clean, technical, dark | Playful; retro pixel *(schematic 0.48 vs realistic −0.01)* |
+| Git terms | Untranslated, code-switched | Localised terminology |
+| First release | **Slice = topics 1–4** | Topics 1–2; full v1 |
