@@ -1,13 +1,19 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { layout } from './layout/layout';
 import { GitGraph } from './graph/GitGraph';
 import { useRepo } from './ui/useRepo';
 import { WorkingDirPanel } from './ui/WorkingDirPanel';
 import { StagingPanel } from './ui/StagingPanel';
+import { CommitBar } from './ui/CommitBar';
+import { RefBar } from './ui/RefBar';
+import { Notice, noticeFromEvents, type NoticeData } from './ui/Notice';
 
 export default function App() {
   const repo = useRepo();
   const model = useMemo(() => layout(repo.state), [repo.state]);
+
+  const [notice, setNotice] = useState<NoticeData | null>(null);
+  useEffect(() => { setNotice(noticeFromEvents(repo.lastEvents)); }, [repo.lastEvents]);
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-6">
@@ -25,9 +31,14 @@ export default function App() {
         <div className="space-y-4">
           <WorkingDirPanel state={repo.state} dispatch={repo.dispatch} />
           <StagingPanel state={repo.state} dispatch={repo.dispatch} />
+          <CommitBar state={repo.state} dispatch={repo.dispatch} />
+          <RefBar state={repo.state} dispatch={repo.dispatch} />
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 overflow-auto min-h-[300px]">
-          <GitGraph model={model} />
+        <div className="space-y-3">
+          <Notice data={notice} onDismiss={() => setNotice(null)} />
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 overflow-auto min-h-[300px]">
+            <GitGraph model={model} />
+          </div>
         </div>
       </div>
     </main>
