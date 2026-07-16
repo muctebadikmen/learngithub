@@ -6,11 +6,14 @@ import { WorkingDirPanel } from './ui/WorkingDirPanel';
 import { StagingPanel } from './ui/StagingPanel';
 import { CommitBar } from './ui/CommitBar';
 import { RefBar } from './ui/RefBar';
+import { HistoryTools } from './ui/HistoryTools';
+import { CommitInspector } from './ui/CommitInspector';
 import { Notice, noticeFromEvents, type NoticeData } from './ui/Notice';
 
 export default function App() {
   const repo = useRepo();
   const model = useMemo(() => layout(repo.state), [repo.state]);
+  const [selectedOid, setSelectedOid] = useState<string | null>(null);
 
   const [notice, setNotice] = useState<NoticeData | null>(null);
   useEffect(() => { setNotice(noticeFromEvents(repo.lastEvents)); }, [repo.lastEvents]);
@@ -33,11 +36,13 @@ export default function App() {
           <StagingPanel state={repo.state} dispatch={repo.dispatch} />
           <CommitBar state={repo.state} dispatch={repo.dispatch} />
           <RefBar state={repo.state} dispatch={repo.dispatch} />
+          <HistoryTools state={repo.state} dispatch={repo.dispatch} selectedOid={selectedOid} />
+          <CommitInspector state={repo.state} oid={selectedOid} />
         </div>
         <div className="space-y-3">
           <Notice data={notice} onDismiss={() => setNotice(null)} />
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 overflow-auto min-h-[300px]">
-            <GitGraph model={model} />
+            <GitGraph model={model} onSelect={setSelectedOid} selectedOid={selectedOid ?? undefined} />
           </div>
         </div>
       </div>

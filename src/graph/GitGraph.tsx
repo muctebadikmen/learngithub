@@ -27,7 +27,11 @@ function labelHalfWidth(nodeRefs: LayoutRef[], message: string, detached: boolea
   return half;
 }
 
-export function GitGraph({ model }: { model: LayoutModel }) {
+export function GitGraph({ model, onSelect, selectedOid }: {
+  model: LayoutModel;
+  onSelect?: (oid: string) => void;
+  selectedOid?: string;
+}) {
   const { nodes, edges, refs } = model;
   const byOid = new Map<string, LayoutNode>(nodes.map((n) => [n.oid, n]));
 
@@ -104,7 +108,16 @@ export function GitGraph({ model }: { model: LayoutModel }) {
         const color = n.reachable ? laneColor(n.lane) : GHOST;
         const nodeRefs = refsByOid.get(n.oid) ?? [];
         return (
-          <g key={n.oid} opacity={n.reachable ? 1 : 0.45}>
+          <g key={n.oid} opacity={n.reachable ? 1 : 0.45}
+             role={onSelect ? 'button' : undefined}
+             tabIndex={onSelect ? 0 : undefined}
+             aria-label={onSelect ? `commit ${n.message}` : undefined}
+             style={onSelect ? { cursor: 'pointer' } : undefined}
+             onClick={onSelect ? () => onSelect(n.oid) : undefined}
+             onKeyDown={onSelect ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(n.oid); } } : undefined}>
+            {n.oid === selectedOid && (
+              <circle cx={x} cy={y} r={NODE_R + 5} fill="none" stroke="#fafafa" strokeWidth={2} opacity={0.9} />
+            )}
             <circle cx={x} cy={y} r={NODE_R}
                     fill={n.reachable ? color : '#18181b'}
                     stroke={color} strokeWidth={2.5}
