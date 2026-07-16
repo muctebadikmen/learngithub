@@ -101,14 +101,18 @@ export function GitGraph({ model, onSelect, selectedOid }: {
         })}
       </g>
 
-      {/* nodes: ref pills (and detached-HEAD marker) above, dot, short message below */}
+      {/* nodes: ref pills (and detached-HEAD marker) above, dot, short message below.
+          Each node group is positioned via `transform` (relative-coordinate children) so
+          that when a node's (row, lane) changes, React updates the transform and the
+          `.graph-node` CSS transition animates the move instead of the SVG snapping. */}
       {nodes.map((n) => {
         const x = nodeX(n.row);
         const y = nodeY(n.lane);
         const color = n.reachable ? laneColor(n.lane) : GHOST;
         const nodeRefs = refsByOid.get(n.oid) ?? [];
         return (
-          <g key={n.oid} opacity={n.reachable ? 1 : 0.45}
+          <g key={n.oid} className="graph-node" transform={`translate(${x} ${y})`}
+             opacity={n.reachable ? 1 : 0.45}
              role={onSelect ? 'button' : undefined}
              tabIndex={onSelect ? 0 : undefined}
              aria-label={onSelect ? `commit ${n.message}` : undefined}
@@ -116,25 +120,25 @@ export function GitGraph({ model, onSelect, selectedOid }: {
              onClick={onSelect ? () => onSelect(n.oid) : undefined}
              onKeyDown={onSelect ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(n.oid); } } : undefined}>
             {n.oid === selectedOid && (
-              <circle cx={x} cy={y} r={NODE_R + 5} fill="none" stroke="#fafafa" strokeWidth={2} opacity={0.9} />
+              <circle cx={0} cy={0} r={NODE_R + 5} fill="none" stroke="#fafafa" strokeWidth={2} opacity={0.9} />
             )}
-            <circle cx={x} cy={y} r={NODE_R}
+            <circle cx={0} cy={0} r={NODE_R}
                     fill={n.reachable ? color : '#18181b'}
                     stroke={color} strokeWidth={2.5}
                     strokeDasharray={n.reachable ? undefined : '3 3'} />
-            <text x={x} y={y + NODE_R + 18} textAnchor="middle" fill="#d4d4d8" fontSize="12.5">
+            <text x={0} y={NODE_R + 18} textAnchor="middle" fill="#d4d4d8" fontSize="12.5">
               {shortLabel(n.message)}
             </text>
             {nodeRefs.map((r, i) => {
               const label = refLabel(r);
               const w = label.length * CHAR_W + 16;
-              const py = pillY(y, i);
+              const py = pillY(0, i);
               return (
                 <g key={r.label}>
-                  <rect x={x - w / 2} y={py - 13} rx={7} ry={7} width={w} height={19}
+                  <rect x={-w / 2} y={py - 13} rx={7} ry={7} width={w} height={19}
                         fill={laneColor(n.lane)} opacity={r.isHead ? 0.28 : 0.16}
                         stroke={laneColor(n.lane)} strokeWidth={1.5} />
-                  <text x={x} y={py} textAnchor="middle" fill={laneColor(n.lane)} fontSize="11.5"
+                  <text x={0} y={py} textAnchor="middle" fill={laneColor(n.lane)} fontSize="11.5"
                         fontWeight={r.isHead ? 700 : 500}>
                     {label}
                   </text>
@@ -142,12 +146,12 @@ export function GitGraph({ model, onSelect, selectedOid }: {
               );
             })}
             {n.oid === detachedOid && (() => {
-              const py = pillY(y, nodeRefs.length); // above any branch pills on this commit
+              const py = pillY(0, nodeRefs.length); // above any branch pills on this commit
               return (
                 <g>
-                  <rect x={x - 26} y={py - 13} rx={7} ry={7} width={52} height={19}
+                  <rect x={-26} y={py - 13} rx={7} ry={7} width={52} height={19}
                         fill="none" stroke="#e4e4e7" strokeWidth={1.5} strokeDasharray="3 3" />
-                  <text x={x} y={py} textAnchor="middle" fill="#e4e4e7" fontSize="11.5">HEAD</text>
+                  <text x={0} y={py} textAnchor="middle" fill="#e4e4e7" fontSize="11.5">HEAD</text>
                 </g>
               );
             })()}

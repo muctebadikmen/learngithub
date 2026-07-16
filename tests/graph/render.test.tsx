@@ -22,9 +22,10 @@ describe('GitGraph render', () => {
     expect(svg).toContain('c1');
     expect(svg).toContain('feature');
     expect(svg).toContain('HEAD');
-    // lock the horizontal orientation: commit F is at row 2, lane 0 → cx=nodeX(2)=320, cy=nodeY(0)=72.
-    // (a re-flip to vertical would put F at cx=56, cy=272 and fail this.)
-    expect(svg).toContain('cx="320" cy="72"');
+    // lock the horizontal orientation: commit F is at row 2, lane 0 → nodeX(2)=320, nodeY(0)=72,
+    // and its node group is positioned via a translate (children use relative coordinates).
+    // (a re-flip to vertical would put F's group at translate(56 272) and fail this.)
+    expect(svg).toContain('translate(320 72)');
   });
 
   it('marks a ghost commit with reduced opacity', () => {

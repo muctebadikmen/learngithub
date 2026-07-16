@@ -9,6 +9,7 @@ import { RefBar } from './ui/RefBar';
 import { HistoryTools } from './ui/HistoryTools';
 import { CommitInspector } from './ui/CommitInspector';
 import { Notice, noticeFromEvents, type NoticeData } from './ui/Notice';
+import { announce } from './ui/liveRegion';
 
 export default function App() {
   const repo = useRepo();
@@ -17,15 +18,18 @@ export default function App() {
 
   const [notice, setNotice] = useState<NoticeData | null>(null);
   useEffect(() => { setNotice(noticeFromEvents(repo.lastEvents)); }, [repo.lastEvents]);
+  const spoken = announce(repo.lastEvents);
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-6">
+      <div aria-live="polite" className="sr-only">{spoken}</div>
       <header className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">git, visually</h1>
           <p className="text-sm text-zinc-500 font-mono">edit files · stage · commit · branch — watch the graph</p>
         </div>
-        <button className="rounded border border-zinc-700 px-3 py-1 text-sm text-zinc-400 hover:bg-zinc-800" onClick={repo.reset}>
+        <button className="rounded border border-zinc-700 px-3 py-1 text-sm text-zinc-400 hover:bg-zinc-800"
+                onClick={() => { repo.reset(); setSelectedOid(null); }}>
           reset repo
         </button>
       </header>
