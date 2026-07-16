@@ -165,7 +165,166 @@ export const en = {
 
 export type MessageKey = keyof typeof en;
 
-// Task 2 replaces these values with Turkish. Start as a copy so the app runs in EN-everywhere.
-export const tr: Record<MessageKey, string> = { ...en };
+export const tr: Record<MessageKey, string> = {
+  // chrome
+  'app.title': 'git, görsel olarak',
+  'app.subtitle': 'git\'i yaparak öğren — grafiği izle',
+  'mode.levels': 'seviyeler',
+  'mode.sandbox': 'serbest mod',
+  'action.restartLevel': 'seviyeyi yeniden başlat',
+  'action.resetRepo': 'repoyu sıfırla',
+  'lang.en': 'EN',
+  'lang.tr': 'TR',
+
+  // graph
+  'graph.noCommits': 'henüz commit yok',
+  'graph.aria': 'commit grafiği',
+  'graph.commitAria': 'commit {message}',
+
+  // working directory
+  'panel.workingDir': 'Çalışma dizini',
+  'workingDir.empty': 'boş',
+  'status.untracked': 'untracked',
+  'status.modified': 'değişti',
+  'status.staged': 'staged',
+  'status.clean': 'temiz',
+  'status.deleted': 'silindi',
+  'action.stage': 'stage →',
+  'action.stage.title': 'stage\'le (git add)',
+  'action.addFile': '+ dosya',
+  'placeholder.newFile': 'yeni-dosya.txt',
+  'action.save': 'kaydet',
+  'action.cancel': 'iptal',
+  'action.edit': 'düzenle',
+
+  // staging
+  'panel.staging': 'Staging alanı',
+  'staging.empty': 'stage\'de bir şey yok',
+  'staged.added': 'eklendi',
+  'staged.modified': 'değişti',
+  'action.unstage': '← unstage',
+  'action.unstage.title': 'unstage\'le (git restore --staged)',
+
+  // commit bar
+  'panel.commit': 'Commit',
+  'placeholder.commitMessage': 'commit mesajı',
+  'action.commit': 'commit',
+  'action.amend': 'amend',
+  'action.amend.title': 'son commit\'i değiştir (git commit --amend)',
+
+  // branches
+  'panel.branches': 'Branch\'ler',
+  'refbar.on': 'şu an:',
+  'refbar.detachedHead': 'detached HEAD',
+  'placeholder.newBranch': 'yeni-branch',
+  'action.branch': 'branch',
+  'action.branch.title': 'burada branch oluştur (git branch)',
+  'action.branchSwitch': 'branch + switch',
+  'action.branchSwitch.title': 'oluştur ve geç (git switch -c)',
+  'action.switchTo.title': '{name} branch\'ine geç',
+
+  // history tools
+  'panel.historyTools': 'Geçmiş araçları',
+  'ht.moveBranch': '{name} branch\'ini şuraya taşı:',
+  'ht.moveHead': 'HEAD\'i şuraya taşı:',
+  'ht.soft': 'soft',
+  'ht.soft.title': 'index + working tree korunur',
+  'ht.mixed': 'mixed',
+  'ht.mixed.title': 'index sıfırlanır, working tree korunur',
+  'ht.hard': 'hard',
+  'ht.hard.title': 'index + working tree atılır',
+  'ht.detachHint': 'branch olmadan bir commit\'e git',
+  'ht.checkoutDetached': 'checkout {oid} (detached)',
+  'ht.checkoutDetached.title': 'git checkout <commit> — detached HEAD',
+  'ht.discard': 'commit\'lenmemiş değişiklikleri at ({n})',
+  'action.restore': 'restore',
+  'action.restore.title': 'git restore <dosyalar>',
+
+  // commit inspector
+  'inspector.select': 'grafikten bir commit seç',
+  'inspector.root': 'kök',
+  'inspector.parent': '{n} üst commit',
+  'inspector.parents': '{n} üst commit',
+
+  // notices (engine reasonKeys)
+  'reason.already-a-repo': 'Burası zaten bir repo.',
+  'reason.amend-identical': 'Hiçbir şey değişmedi — amend edilen commit aynısı olurdu.',
+  'reason.branch-exists': '"{name}" adlı bir branch zaten var.',
+  'reason.detach-requires-flag': '"{ref}" bir commit, branch değil.',
+  'reason.no-commits-yet': 'Bunu yapmadan önce ilk commit\'ini yap.',
+  'reason.not-a-repo': 'Bu klasör henüz bir repo değil.',
+  'reason.nothing-to-commit': 'Stage\'de commit\'lenecek bir şey yok.',
+  'reason.path-is-ignored': '"{path}" yok sayılıyor.',
+  'reason.pathspec-no-match': '"{path}" adlı takip edilen bir dosya yok.',
+  'reason.switch-dirty': 'Commit\'lenmemiş değişikliklerin var — önce commit\'le ya da at.',
+  'reason.unknown-ref': '"{ref}" adlı bir branch ya da commit yok.',
+  'notice.dismiss': 'kapat',
+
+  // live region (spoken)
+  'spoken.commit': '{oid} commit\'i oluşturuldu.',
+  'spoken.onBranch': 'Artık {name} branch\'indesin.',
+  'spoken.detached': 'HEAD {oid} üzerinde detached oldu.',
+  'spoken.refMoved': '{ref} branch\'i taşındı.',
+  'spoken.snapshotLost': 'Uyarı: stage\'lenmiş bir anlık görüntü değiştirildi.',
+  'spoken.staged': 'Staging alanı güncellendi.',
+  'spoken.worktree': 'Çalışma dosyaları güncellendi.',
+  'spoken.fileSaved': 'Dosya kaydedildi.',
+
+  // level panel
+  'level.progress': 'Seviye {n} / {total}',
+  'level.restart': 'yeniden başlat',
+  'level.restart.title': 'bu seviyeyi yeniden başlat',
+  'level.complete': 'Seviye tamam! 🎉',
+  'level.next': 'sonraki seviye ▸',
+  'level.finishedAll': 'Tüm seviyeleri bitirdin.',
+  'level.locked': 'kilitli',
+  'level.levelsAria': 'seviyeler',
+
+  // the 10 levels: title, goal, and check labels
+  'level.first-commit.title': 'İlk commit\'in',
+  'level.first-commit.goal': 'Bir dosya oluştur, stage\'le (git add), sonra ilk commit\'ini yap.',
+  'level.first-commit.check.0': 'en az bir commit var',
+
+  'level.commit-again.title': 'Tekrar commit\'le',
+  'level.commit-again.goal': 'Bir dosyayı düzenle, değişikliği stage\'le, ikinci commit\'i yap.',
+  'level.commit-again.check.0': 'geçmişte iki commit var',
+
+  'level.stage-selectively.title': 'Seçerek stage\'le',
+  'level.stage-selectively.goal': 'İki yeni dosya var: a.txt ve b.txt. SADECE a.txt\'yi stage\'le (b.txt\'yi stage\'leme).',
+  'level.stage-selectively.check.0': 'a.txt stage\'lendi',
+  'level.stage-selectively.check.1': 'b.txt stage\'lenmedi',
+
+  'level.branch.title': 'Bir branch oluştur',
+  'level.branch.goal': '\'feature\' adlı bir branch oluştur ve üzerinde bir commit yap.',
+  'level.branch.check.0': '\'feature\' branch\'i var',
+  'level.branch.check.1': '\'feature\'da main\'de olmayan bir commit var',
+
+  'level.switch.title': 'Branch değiştir',
+  'level.switch.goal': '\'feature\'dasın. main branch\'ine geri dön.',
+  'level.switch.check.0': 'HEAD main üzerinde',
+
+  'level.diverge.title': 'İki branch\'i ayrıştır',
+  'level.diverge.goal': 'main ve \'feature\' aynı commit\'i gösteriyor. Ayrışmaları için her birinde birer commit yap.',
+  'level.diverge.check.0': 'main\'de kendine ait bir commit var',
+  'level.diverge.check.1': '\'feature\'da kendine ait bir commit var',
+
+  'level.undo-soft.title': 'Commit\'i geri al, işi koru',
+  'level.undo-soft.goal': 'En son commit\'ini geri al ama değişiklikleri staged kalsın. Önceki commit\'i seç, sonra reset (soft) yap.',
+  'level.undo-soft.check.0': 'geçmiş tekrar tek commit\'e döndü',
+  'level.undo-soft.check.1': 'geri alınan değişiklik hâlâ staged',
+
+  'level.amend.title': 'Son commit mesajını düzelt',
+  'level.amend.goal': 'Son commit\'in \'tpyo\' diyor. Amend ederek \'add readme\' yap.',
+  'level.amend.check.0': 'son commit \'add readme\' diyor',
+  'level.amend.check.1': 'hâlâ tam olarak bir commit var',
+
+  'level.detach.title': 'HEAD\'i detach et',
+  'level.detach.goal': 'Önceki bir commit\'i doğrudan checkout et (detached HEAD): onu seç, sonra "checkout (detached)".',
+  'level.detach.check.0': 'HEAD detached durumda',
+
+  'level.rescue-ghost.title': 'Kayıp bir commit\'i kurtar',
+  'level.rescue-ghost.goal': 'Çok geriye reset attın — \'important work\' artık bir hayalet (soluk, erişilemez). main\'i tekrar ona yönelt: hayaleti seç, sonra reset (hard) yap.',
+  'level.rescue-ghost.check.0': '\'important work\' tekrar main\'de',
+};
 
 export const dict: Record<Locale, Record<MessageKey, string>> = { en, tr };
