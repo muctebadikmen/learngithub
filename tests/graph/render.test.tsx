@@ -40,3 +40,34 @@ describe('GitGraph render', () => {
     expect(svg).toContain('no commits yet');
   });
 });
+
+describe('GitGraph — label edge cases', () => {
+  it('grows the top margin so stacked ref pills on a lane-0 commit never clip', () => {
+    // three branches on the very first commit (lane 0) — worst case for top clipping
+    const s = run([
+      write('a.txt', '1'), addF('a.txt'), commitM('c1'),
+      { cmd: 'branch', name: 'b1' },
+      { cmd: 'branch', name: 'b2' },
+    ]);
+    const svg = renderToStaticMarkup(<GitGraph model={layout(s)} />);
+    expect(svg).toContain('main');
+    expect(svg).toContain('b1');
+    expect(svg).toContain('b2');
+    // viewBox = "minX minY width height"; minY must be pulled above 0 to fit the 3-pill stack.
+    const vb = svg.match(/viewBox="([^"]+)"/)![1].split(' ').map(Number);
+    expect(vb[1]).toBeLessThan(0);
+  });
+
+  it('renders a detached-HEAD marker alongside a co-located branch pill', () => {
+    const s0 = run([
+      write('a.txt', '1'), addF('a.txt'), commitM('c1'),
+      write('a.txt', '2'), addF('a.txt'), commitM('c2'),
+    ]);
+    const tip = s0.branches['main'];
+    const s = reduce(s0, { cmd: 'switch', target: tip, detach: true }).state;
+    const svg = renderToStaticMarkup(<GitGraph model={layout(s)} />);
+    expect(svg).toContain('HEAD');     // detached marker
+    expect(svg).toContain('main');     // branch pill on the same commit
+    expect(svg).toContain('3 3');      // dashed outline of the HEAD marker
+  });
+});

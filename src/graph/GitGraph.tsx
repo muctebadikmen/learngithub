@@ -2,6 +2,7 @@ import type { LayoutModel, LayoutNode } from '../layout/types';
 import { COL_W, LANE_H, MARGIN_X, MARGIN_Y, NODE_R, laneColor, nodeX, nodeY, shortLabel } from './geometry';
 
 const GHOST = '#6b7280'; // muted gray for unreachable commits
+const PILL_STEP = 22;    // vertical gap between stacked labels above a node
 
 // Edge from a child (right) back to its parent (left). Straight when same lane;
 // a gentle horizontal S-curve when the branch changes lanes.
@@ -10,6 +11,9 @@ function edgePath(cx: number, cy: number, px: number, py: number): string {
   const midX = (cx + px) / 2;
   return `M ${cx} ${cy} C ${midX} ${cy}, ${midX} ${py}, ${px} ${py}`;
 }
+
+// Baseline Y of the i-th stacked label above a node (i=0 is closest to the dot).
+const pillY = (y: number, i: number): number => y - NODE_R - 12 - i * PILL_STEP;
 
 export function GitGraph({ model }: { model: LayoutModel }) {
   const { nodes, edges, refs } = model;
@@ -26,10 +30,7 @@ export function GitGraph({ model }: { model: LayoutModel }) {
     );
   }
 
-  const width = MARGIN_X * 2 + Math.max(0, model.rowCount - 1) * COL_W + 160;
-  const height = MARGIN_Y * 2 + Math.max(0, model.laneCount - 1) * LANE_H;
-
-  // Group refs by the commit they point at, so multiple labels stack above a node.
+  // Refs grouped by the commit they point at, so multiple labels stack above a node.
   const refsByOid = new Map<string, typeof refs>();
   for (const r of refs) {
     const list = refsByOid.get(r.oid) ?? [];
@@ -37,8 +38,26 @@ export function GitGraph({ model }: { model: LayoutModel }) {
     refsByOid.set(r.oid, list);
   }
 
+  // A detached HEAD draws its own marker, stacked ABOVE any branch pills on the same commit.
+  const detachedOid = model.detachedHead ? model.headOid : null;
+
+  // Tallest label stack across all nodes → headroom the viewBox needs so pills on
+  // a lane-0 (topmost) node never clip above the top edge.
+  let maxStack = 0;
+  for (const n of nodes) {
+    const count = (refsByOid.get(n.oid)?.length ?? 0) + (n.oid === detachedOid ? 1 : 0);
+    if (count > maxStack) maxStack = count;
+  }
+
+  const topPad = maxStack === 0 ? 26 : 26 + maxStack * PILL_STEP;
+  const botPad = NODE_R + 34; // room for the message under the lowest lane
+  const minY = MARGIN_Y - NODE_R - topPad;
+  const bottom = MARGIN_Y + Math.max(0, model.laneCount - 1) * LANE_H + botPad;
+  const width = MARGIN_X * 2 + Math.max(0, model.rowCount - 1) * COL_W + 160;
+  const height = bottom - minY;
+
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width="100%" role="img" aria-label="commit graph"
+    <svg viewBox={`0 ${minY} ${width} ${height}`} width="100%" role="img" aria-label="commit graph"
          fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace">
       {/* edges under nodes */}
       <g strokeWidth={2.5} fill="none">
@@ -56,7 +75,7 @@ export function GitGraph({ model }: { model: LayoutModel }) {
         })}
       </g>
 
-      {/* nodes: ref pills above, dot, short message below */}
+      {/* nodes: ref pills (and detached-HEAD marker) above, dot, short message below */}
       {nodes.map((n) => {
         const x = nodeX(n.row);
         const y = nodeY(n.lane);
@@ -74,7 +93,7 @@ export function GitGraph({ model }: { model: LayoutModel }) {
             {nodeRefs.map((r, i) => {
               const label = r.isHead ? `HEAD → ${r.label}` : r.label;
               const w = label.length * 7 + 16;
-              const py = y - NODE_R - 12 - i * 22;
+              const py = pillY(y, i);
               return (
                 <g key={r.label}>
                   <rect x={x - w / 2} y={py - 13} rx={7} ry={7} width={w} height={19}
@@ -87,23 +106,19 @@ export function GitGraph({ model }: { model: LayoutModel }) {
                 </g>
               );
             })}
+            {n.oid === detachedOid && (() => {
+              const py = pillY(y, nodeRefs.length); // above any branch pills on this commit
+              return (
+                <g>
+                  <rect x={x - 26} y={py - 13} rx={7} ry={7} width={52} height={19}
+                        fill="none" stroke="#e4e4e7" strokeWidth={1.5} strokeDasharray="3 3" />
+                  <text x={x} y={py} textAnchor="middle" fill="#e4e4e7" fontSize="11.5">HEAD</text>
+                </g>
+              );
+            })()}
           </g>
         );
       })}
-
-      {/* detached HEAD marker (no branch to attach to) */}
-      {model.detachedHead && model.headOid && byOid.get(model.headOid) && (() => {
-        const n = byOid.get(model.headOid)!;
-        const x = nodeX(n.row);
-        const y = nodeY(n.lane);
-        return (
-          <g>
-            <rect x={x - 26} y={y - NODE_R - 25} rx={7} ry={7} width={52} height={19}
-                  fill="none" stroke="#e4e4e7" strokeWidth={1.5} strokeDasharray="3 3" />
-            <text x={x} y={y - NODE_R - 12} textAnchor="middle" fill="#e4e4e7" fontSize="11.5">HEAD</text>
-          </g>
-        );
-      })()}
     </svg>
   );
 }
