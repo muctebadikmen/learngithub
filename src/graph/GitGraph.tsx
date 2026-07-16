@@ -27,20 +27,34 @@ function labelHalfWidth(nodeRefs: LayoutRef[], message: string, detached: boolea
   return half;
 }
 
-export function GitGraph({ model, onSelect, selectedOid }: {
+export interface GitGraphLabels {
+  empty: string;
+  aria: string;
+  commitAria: (message: string) => string;
+}
+
+const DEFAULT_LABELS: GitGraphLabels = {
+  empty: 'no commits yet',
+  aria: 'commit graph',
+  commitAria: (message: string) => `commit ${message}`,
+};
+
+export function GitGraph({ model, onSelect, selectedOid, labels }: {
   model: LayoutModel;
   onSelect?: (oid: string) => void;
   selectedOid?: string;
+  labels?: GitGraphLabels;
 }) {
+  const L = labels ?? DEFAULT_LABELS;
   const { nodes, edges, refs } = model;
   const byOid = new Map<string, LayoutNode>(nodes.map((n) => [n.oid, n]));
 
   if (nodes.length === 0) {
     return (
-      <svg viewBox="0 0 420 180" width={420} height={180} role={onSelect ? 'group' : 'img'} aria-label="commit graph">
+      <svg viewBox="0 0 420 180" width={420} height={180} role={onSelect ? 'group' : 'img'} aria-label={L.aria}>
         <text x="210" y="94" textAnchor="middle" fill="#6b7280"
               fontFamily="ui-monospace, monospace" fontSize="16">
-          no commits yet
+          {L.empty}
         </text>
       </svg>
     );
@@ -83,7 +97,7 @@ export function GitGraph({ model, onSelect, selectedOid }: {
   // the container scrolls instead, keeping every existing commit visually put.
   return (
     <svg viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`} width={vbW} height={vbH}
-         role={onSelect ? 'group' : 'img'} aria-label="commit graph"
+         role={onSelect ? 'group' : 'img'} aria-label={L.aria}
          fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace">
       {/* edges under nodes */}
       <g strokeWidth={2.5} fill="none">
@@ -115,7 +129,7 @@ export function GitGraph({ model, onSelect, selectedOid }: {
              opacity={n.reachable ? 1 : 0.45}
              role={onSelect ? 'button' : undefined}
              tabIndex={onSelect ? 0 : undefined}
-             aria-label={onSelect ? `commit ${n.message}` : undefined}
+             aria-label={onSelect ? L.commitAria(n.message) : undefined}
              style={onSelect ? { cursor: 'pointer' } : undefined}
              onClick={onSelect ? () => onSelect(n.oid) : undefined}
              onKeyDown={onSelect ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(n.oid); } } : undefined}>

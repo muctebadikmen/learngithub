@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import type { GitAction, RepoState } from '../engine/types';
+import type { MessageKey } from '../i18n/dict';
+import { useT } from '../i18n/I18nProvider';
 import { workingFiles, type WorkStatus } from './fileStatus';
 
 const STATUS_STYLE: Record<WorkStatus, string> = {
@@ -11,6 +13,7 @@ const STATUS_STYLE: Record<WorkStatus, string> = {
 };
 
 export function WorkingDirPanel({ state, dispatch }: { state: RepoState; dispatch: (a: GitAction) => unknown }) {
+  const { t } = useT();
   const files = workingFiles(state);
   const [newName, setNewName] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
@@ -21,19 +24,19 @@ export function WorkingDirPanel({ state, dispatch }: { state: RepoState; dispatc
 
   return (
     <section className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">Working directory</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">{t('panel.workingDir')}</h2>
       <ul className="space-y-1 mb-3">
-        {files.length === 0 && <li className="text-sm text-zinc-600 italic">empty</li>}
+        {files.length === 0 && <li className="text-sm text-zinc-600 italic">{t('workingDir.empty')}</li>}
         {files.map((f) => (
           <li key={f.path} className="flex items-center justify-between gap-2 text-sm font-mono">
-            <button className={`truncate hover:underline ${STATUS_STYLE[f.status]}`} onClick={() => openEditor(f.path)} title="edit">
+            <button className={`truncate hover:underline ${STATUS_STYLE[f.status]}`} onClick={() => openEditor(f.path)} title={t('action.edit')}>
               {f.path}
             </button>
             <span className="flex items-center gap-2">
-              <span className="text-[10px] uppercase text-zinc-600">{f.status}</span>
+              <span className="text-[10px] uppercase text-zinc-600">{t(`status.${f.status}` as MessageKey)}</span>
               {f.status !== 'clean' && f.status !== 'staged' && f.status !== 'deleted' && (
-                <button className="text-emerald-400 hover:text-emerald-300 text-xs" onClick={() => dispatch({ cmd: 'add', paths: [f.path] })} title="stage (git add)">
-                  stage →
+                <button className="text-emerald-400 hover:text-emerald-300 text-xs" onClick={() => dispatch({ cmd: 'add', paths: [f.path] })} title={t('action.stage.title')}>
+                  {t('action.stage')}
                 </button>
               )}
             </span>
@@ -44,7 +47,7 @@ export function WorkingDirPanel({ state, dispatch }: { state: RepoState; dispatc
       <div className="flex gap-2">
         <input
           value={newName} onChange={(e) => setNewName(e.target.value)}
-          placeholder="new-file.txt"
+          placeholder={t('placeholder.newFile')}
           className="flex-1 min-w-0 rounded bg-zinc-800 px-2 py-1 text-sm font-mono text-zinc-100 placeholder:text-zinc-600"
         />
         <button
@@ -57,7 +60,7 @@ export function WorkingDirPanel({ state, dispatch }: { state: RepoState; dispatc
             setNewName('');
           }}
         >
-          + file
+          {t('action.addFile')}
         </button>
       </div>
 
@@ -69,8 +72,8 @@ export function WorkingDirPanel({ state, dispatch }: { state: RepoState; dispatc
             className="w-full rounded bg-zinc-900 p-2 text-sm font-mono text-zinc-100"
           />
           <div className="flex justify-end gap-2 mt-2">
-            <button className="text-xs text-zinc-400 hover:text-zinc-200" onClick={() => setEditing(null)}>cancel</button>
-            <button className="rounded bg-emerald-700 px-2 py-1 text-xs hover:bg-emerald-600" onClick={saveEditor}>save</button>
+            <button className="text-xs text-zinc-400 hover:text-zinc-200" onClick={() => setEditing(null)}>{t('action.cancel')}</button>
+            <button className="rounded bg-emerald-700 px-2 py-1 text-xs hover:bg-emerald-600" onClick={saveEditor}>{t('action.save')}</button>
           </div>
         </div>
       )}

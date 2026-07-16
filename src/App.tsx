@@ -13,8 +13,10 @@ import { announce } from './ui/liveRegion';
 import { LEVELS } from './levels/levels';
 import { LevelPanel } from './levels/LevelPanel';
 import { loadProgress, saveProgress, withCompleted, type Progress } from './levels/progress';
+import { useT } from './i18n/I18nProvider';
 
 export default function App() {
+  const { t, locale, setLocale } = useT();
   const repo = useRepo();
   const model = useMemo(() => layout(repo.state), [repo.state]);
   const [selectedOid, setSelectedOid] = useState<string | null>(null);
@@ -23,8 +25,8 @@ export default function App() {
   const [progress, setProgress] = useState<Progress>(() => loadProgress(LEVELS.length));
 
   const [notice, setNotice] = useState<NoticeData | null>(null);
-  useEffect(() => { setNotice(noticeFromEvents(repo.lastEvents)); }, [repo.lastEvents]);
-  const spoken = announce(repo.lastEvents);
+  useEffect(() => { setNotice(noticeFromEvents(repo.lastEvents, t)); }, [repo.lastEvents, t]);
+  const spoken = announce(repo.lastEvents, t);
 
   const seededForRef = useRef<string | null>(null);
 
@@ -65,8 +67,8 @@ export default function App() {
       <div aria-live="polite" className="sr-only">{spoken}</div>
       <header className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">git, visually</h1>
-          <p className="text-sm text-zinc-500 font-mono">learn git by doing — watch the graph</p>
+          <h1 className="text-xl font-semibold">{t('app.title')}</h1>
+          <p className="text-sm text-zinc-500 font-mono">{t('app.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex rounded border border-zinc-700 overflow-hidden text-sm">
@@ -74,21 +76,35 @@ export default function App() {
               className={`px-3 py-1 ${mode === 'levels' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400'}`}
               onClick={() => setMode('levels')}
             >
-              levels
+              {t('mode.levels')}
             </button>
             <button
               className={`px-3 py-1 ${mode === 'sandbox' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400'}`}
               onClick={() => setMode('sandbox')}
             >
-              sandbox
+              {t('mode.sandbox')}
             </button>
           </div>
           <button
             className="rounded border border-zinc-700 px-3 py-1 text-sm text-zinc-400 hover:bg-zinc-800"
             onClick={() => { setSelectedOid(null); repo.reset(mode === 'levels' ? level.seed : undefined); }}
           >
-            {mode === 'levels' ? 'restart level' : 'reset repo'}
+            {mode === 'levels' ? t('action.restartLevel') : t('action.resetRepo')}
           </button>
+          <div className="flex rounded border border-zinc-700 overflow-hidden text-sm">
+            <button
+              className={`px-2 py-1 ${locale === 'en' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400'}`}
+              onClick={() => setLocale('en')}
+            >
+              {t('lang.en')}
+            </button>
+            <button
+              className={`px-2 py-1 ${locale === 'tr' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400'}`}
+              onClick={() => setLocale('tr')}
+            >
+              {t('lang.tr')}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -117,7 +133,16 @@ export default function App() {
         <div className="space-y-3">
           <Notice data={notice} onDismiss={() => setNotice(null)} />
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 overflow-auto min-h-[300px]">
-            <GitGraph model={model} onSelect={setSelectedOid} selectedOid={selectedOid ?? undefined} />
+            <GitGraph
+              model={model}
+              onSelect={setSelectedOid}
+              selectedOid={selectedOid ?? undefined}
+              labels={{
+                empty: t('graph.noCommits'),
+                aria: t('graph.aria'),
+                commitAria: (message) => t('graph.commitAria', { message }),
+              }}
+            />
           </div>
         </div>
       </div>
