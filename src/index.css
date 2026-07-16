@@ -8,6 +8,11 @@
 .graph-node:focus-visible { outline: 2px solid #d4d4d8; outline-offset: 4px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .graph-node { transition: none; }
+  .graph-node,
+  .graph-node circle,
+  .graph-node text,
+  .graph-node rect {
+    transition: none;
+  }
 }
 
