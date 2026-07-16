@@ -1,7 +1,7 @@
 import type { Level } from './types';
 import { applyActions } from './seed';
 import {
-  commitCountOnHead, hasReachableMessage, headBranch, tipMessage, uniqueTo,
+  commitCountOnHead, messageInBranch, headBranch, tipMessage, uniqueTo,
 } from './predicates';
 import { getBlob } from '../engine/store';
 
@@ -116,6 +116,6 @@ export const LEVELS: Level[] = [
       { cmd: 'writeFile', path: 'readme.md', content: '3' }, { cmd: 'add', paths: ['readme.md'] }, { cmd: 'commit', message: 'important work' },
       { cmd: 'reset', mode: 'hard', target: 'HEAD~1' },
     ]),
-    checks: [{ label: "'important work' is reachable again", done: (s) => hasReachableMessage(s, 'important work') }],
+    checks: [{ label: "'important work' is back on main", done: (s) => messageInBranch(s, 'main', 'important work') }],
   },
 ];

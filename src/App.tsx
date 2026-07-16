@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { layout } from './layout/layout';
 import { GitGraph } from './graph/GitGraph';
 import { useRepo } from './ui/useRepo';
@@ -36,7 +36,7 @@ export default function App() {
 
   // (re)seed the repo whenever the active level changes or we switch between levels/sandbox mode
   const levelKey = mode === 'levels' ? level.id : '__sandbox__';
-  useEffect(() => {
+  useLayoutEffect(() => {
     setSelectedOid(null);
     repo.reset(mode === 'levels' ? level.seed : undefined);
     seededForRef.current = levelKey;

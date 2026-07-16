@@ -13,8 +13,8 @@ export interface RepoApi {
 const freshRepo = (): RepoState => reduce(initialState(), { cmd: 'init' }).state;
 
 /** The single source of truth: live RepoState + the one dispatch entry point. */
-export function useRepo(seed?: (s: RepoState) => RepoState): RepoApi {
-  const [state, setState] = useState<RepoState>(() => (seed ? seed(freshRepo()) : freshRepo()));
+export function useRepo(): RepoApi {
+  const [state, setState] = useState<RepoState>(freshRepo);
   const [lastEvents, setLastEvents] = useState<EngineEvent[]>([]);
   const ref = useRef(state);
 

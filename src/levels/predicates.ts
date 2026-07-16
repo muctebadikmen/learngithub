@@ -40,3 +40,7 @@ export function tipMessage(state: RepoState): string | null {
 /** Is there any reachable commit (from any branch or detached HEAD) with this message? */
 export const hasReachableMessage = (state: RepoState, message: string): boolean =>
   [...reachableCommits(state)].some((o) => getCommit(state, o).message === message);
+
+/** Is a commit with this message reachable from `branch`'s tip? */
+export const messageInBranch = (state: RepoState, branch: string, message: string): boolean =>
+  [...ancestorsOf(state, tipOf(state, branch))].some((o) => getCommit(state, o).message === message);

@@ -27,10 +27,10 @@ export function LevelPanel({
       <p className="text-sm text-zinc-400 mb-3">{level.goal}</p>
 
       <ul className="space-y-1 mb-3">
-        {level.checks.map((c) => {
+        {level.checks.map((c, i) => {
           const ok = c.done(state);
           return (
-            <li key={c.label} className={`flex items-center gap-2 text-sm ${ok ? 'text-emerald-400' : 'text-zinc-500'}`}>
+            <li key={i} className={`flex items-center gap-2 text-sm ${ok ? 'text-emerald-400' : 'text-zinc-500'}`}>
               <span aria-hidden>{ok ? '✓' : '○'}</span>
               <span>{c.label}</span>
             </li>
