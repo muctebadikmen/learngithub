@@ -1,9 +1,9 @@
-import { canCommit } from '../ui/affordances';
 import type { Level } from './types';
 import { applyActions } from './seed';
 import {
   commitCountOnHead, hasReachableMessage, headBranch, tipMessage, uniqueTo,
 } from './predicates';
+import { getBlob } from '../engine/store';
 
 export const LEVELS: Level[] = [
   {
@@ -81,7 +81,7 @@ export const LEVELS: Level[] = [
     ]),
     checks: [
       { label: 'history is back to one commit', done: (s) => commitCountOnHead(s) === 1 },
-      { label: 'the change is still staged', done: (s) => canCommit(s) },
+      { label: 'the undone change is still staged', done: (s) => 'readme.md' in s.index && getBlob(s, s.index['readme.md']).content === '2' },
     ],
   },
   {
@@ -91,7 +91,10 @@ export const LEVELS: Level[] = [
     seed: (f) => applyActions(f, [
       { cmd: 'writeFile', path: 'readme.md', content: 'x' }, { cmd: 'add', paths: ['readme.md'] }, { cmd: 'commit', message: 'tpyo' },
     ]),
-    checks: [{ label: "the last commit says 'add readme'", done: (s) => tipMessage(s) === 'add readme' }],
+    checks: [
+      { label: "the last commit says 'add readme'", done: (s) => tipMessage(s) === 'add readme' },
+      { label: 'still exactly one commit', done: (s) => commitCountOnHead(s) === 1 },
+    ],
   },
   {
     id: 'detach',
