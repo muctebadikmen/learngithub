@@ -1523,7 +1523,6 @@ Expected: FAIL — module missing.
 - [ ] **Step 3: Implement `src/engine/queries.ts`**
 
 ```ts
-import { headCommitOid } from './refs';
 import { getCommit, getTree } from './store';
 import type { Oid, RepoState } from './types';
 
@@ -1613,8 +1612,7 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'n
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { GitAction, Oid, RepoState } from '../../src/engine/types';
-import { getBlob, getCommit, getTree, treeOf } from '../../src/engine/store';
-import { headCommitOid } from '../../src/engine/refs';
+import { getBlob, getCommit } from '../../src/engine/store';
 import { danglingBlobs } from '../../src/engine/queries';
 
 export interface CanonicalRepo {
