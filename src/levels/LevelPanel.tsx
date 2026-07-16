@@ -20,7 +20,7 @@ export function LevelPanel({
   return (
     <section className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <h2 className="text-xs font-semibold tracking-wide text-zinc-500">
           {t('level.progress', { n: index + 1, total })}
         </h2>
         <button className="text-[11px] text-zinc-500 hover:text-zinc-300" onClick={onRestart} title={t('level.restart.title')}>{t('level.restart')}</button>

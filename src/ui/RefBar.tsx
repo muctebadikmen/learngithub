@@ -12,7 +12,7 @@ export function RefBar({ state, dispatch }: { state: RepoState; dispatch: (a: Gi
 
   return (
     <section className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3 space-y-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{t('panel.branches')}</h2>
+      <h2 className="text-xs font-semibold tracking-wide text-zinc-500">{t('panel.branches')}</h2>
 
       <div>
         <div className="text-[11px] text-zinc-500 mb-1">

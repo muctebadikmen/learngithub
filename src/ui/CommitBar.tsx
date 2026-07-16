@@ -13,7 +13,7 @@ export function CommitBar({ state, dispatch }: { state: RepoState; dispatch: (a:
   };
   return (
     <section className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">{t('panel.commit')}</h2>
+      <h2 className="text-xs font-semibold tracking-wide text-zinc-500 mb-2">{t('panel.commit')}</h2>
       <input
         value={message} onChange={(e) => setMessage(e.target.value)}
         placeholder={t('placeholder.commitMessage')}

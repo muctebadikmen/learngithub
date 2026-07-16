@@ -20,7 +20,7 @@ export function HistoryTools({ state, dispatch, selectedOid }: {
 
   return (
     <section className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3 space-y-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{t('panel.historyTools')}</h2>
+      <h2 className="text-xs font-semibold tracking-wide text-zinc-500">{t('panel.historyTools')}</h2>
 
       <div>
         <div className="text-[11px] text-zinc-500 mb-1">
