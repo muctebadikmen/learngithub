@@ -1,4 +1,3 @@
-import { headCommitOid } from './refs';
 import { getCommit, getTree } from './store';
 import type { Oid, RepoState } from './types';
 
