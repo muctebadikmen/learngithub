@@ -6,6 +6,7 @@ import { commit } from './actions/commit';
 import { branch } from './actions/branch';
 import { switchTo } from './actions/switch';
 import { reset } from './actions/reset';
+import { restore } from './actions/restore';
 
 export function reduce(state: RepoState, action: GitAction): ReduceResult {
   if (!state.initialised && action.cmd !== 'init' && action.cmd !== 'writeFile') {
@@ -19,7 +20,6 @@ export function reduce(state: RepoState, action: GitAction): ReduceResult {
     case 'branch': return branch(state, action.name);
     case 'switch': return switchTo(state, action.target, { create: action.create, detach: action.detach });
     case 'reset': return reset(state, action.mode, action.target);
-    default:
-      return { state, events: [{ kind: 'error', reasonKey: 'not-implemented' }] };
+    case 'restore': return restore(state, action.paths, { staged: action.staged });
   }
 }
