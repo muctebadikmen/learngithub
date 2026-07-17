@@ -17,9 +17,12 @@ import {
   mergeBranch,
   openPR,
   parentLaneIdx,
+  pull,
   push,
+  remoteMainTip,
   restoreFromCloud,
   switchBranch,
+  teammatePush,
   tip,
   type ModelState,
 } from '../src/model'
@@ -408,5 +411,28 @@ describe('model', () => {
     expect(revivedPrOk).toBe(true)
     expect(revived.pr).toEqual({ status: 'open', from: 'deneme' })
     expect(revived.branches.some((b) => b.name === 'deneme')).toBe(true)
+  })
+
+  // --- teammate push + pull (fast-forward) ---
+
+  it('a teammate push advances remote main; pull fast-forwards local main', () => {
+    let s = push(seeded()) // main pushed, remote == local
+    s = teammatePush(s, 'Arkadaşın işi')
+    expect(s.remoteExtra).toHaveLength(1)
+    expect(headCommit(s)?.label).toBe('Özellik 1') // local unchanged yet
+    const pulled = pull(s)
+    expect(pulled.remoteExtra).toHaveLength(0)
+    expect(headCommit(pulled)?.label).toBe('Arkadaşın işi')
+    expect(pulled.pushedIds).toContain(headCommit(pulled)?.id)
+  })
+
+  it('pull is a no-op with nothing on the remote', () => {
+    const s = push(seeded())
+    expect(pull(s)).toBe(s)
+  })
+
+  it('remoteMainTip reflects the last pushed main commit before any teammate push', () => {
+    const s = push(seeded())
+    expect(remoteMainTip(s)?.label).toBe('Özellik 1')
   })
 })

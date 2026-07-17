@@ -36,6 +36,7 @@ export type ModelState = {
   pr: PR | null
   counter: number
   lastEvent: string | null
+  remoteExtra: Commit[] // commits a teammate pushed to GitHub that local hasn't pulled yet
 }
 
 export const THEME_COUNT = 5
@@ -58,6 +59,7 @@ export function initialModel(): ModelState {
     pr: null,
     counter: 0,
     lastEvent: null,
+    remoteExtra: [],
   }
 }
 
@@ -323,6 +325,45 @@ export function push(s: ModelState): ModelState {
   }
 }
 
+// GitHub's main tip: a teammate's not-yet-pulled commit if there is one,
+// otherwise the last main commit local has actually pushed.
+export function remoteMainTip(s: ModelState): Commit | null {
+  if (s.remoteExtra.length) return s.remoteExtra[s.remoteExtra.length - 1]
+  const pushedMain = s.commits.filter((c) => c.branch === 'main' && s.pushedIds.includes(c.id))
+  return pushedMain.length ? pushedMain[pushedMain.length - 1] : null
+}
+
+// A teammate commits straight to GitHub's main — local doesn't see it until pull().
+export function teammatePush(s: ModelState, label = 'Arkadaşın değişikliği'): ModelState {
+  const base = remoteMainTip(s)
+  if (!base) return s
+  const maxX = Math.max(0, ...s.commits.map((c) => c.x), ...s.remoteExtra.map((c) => c.x))
+  const look: AppLook = { ...base.look, theme: (base.look.theme + 1) % THEME_COUNT }
+  const c: Commit = { id: `r${s.counter + 1}`, label, branch: 'main', laneIdx: 0, parentId: base.id, x: maxX + 1, look, isMerge: false }
+  return { ...s, remoteExtra: [...s.remoteExtra, c], counter: s.counter + 1, lastEvent: '👥 Takım arkadaşın main’e push’ladı — senin local’in geride.' }
+}
+
+// Fast-forward only: if local main has moved past the teammate's base, this
+// is a no-op — a real divergence is taught at merge time, not here.
+export function pull(s: ModelState): ModelState {
+  if (!s.remoteExtra.length) return s
+  const localMainTip = tip(s, 'main')
+  const base = s.remoteExtra[0].parentId
+  if (localMainTip && localMainTip.id !== base) return s
+  const brought = s.remoteExtra
+  const onMain = s.currentBranch === 'main'
+  const newTip = brought[brought.length - 1]
+  return {
+    ...s,
+    commits: [...s.commits, ...brought],
+    remoteExtra: [],
+    pushedIds: [...new Set([...s.pushedIds, ...brought.map((c) => c.id)])],
+    headId: onMain ? newTip.id : s.headId,
+    workLook: onMain ? { ...newTip.look } : s.workLook,
+    lastEvent: `☁️ Pull tamam — arkadaşının ${brought.length} commit’i artık sende.`,
+  }
+}
+
 export function laptopDie(s: ModelState): ModelState {
   return { ...s, laptopDead: true, lastEvent: 'Bilgisayar çöktü.' }
 }
@@ -345,6 +386,7 @@ export function restoreFromCloud(s: ModelState): ModelState {
     headId: t?.id ?? null,
     workLook: t ? { ...t.look } : { theme: 0, blocks: 1, broken: false },
     dirty: false,
+    remoteExtra: [],
     lastEvent: t ? "Proje GitHub'dan geri indirildi — hiçbir şey kaybolmadı." : 'GitHub boştu… push’lamadığın her şey gitti.',
   }
 }
