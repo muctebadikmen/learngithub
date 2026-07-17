@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  abandonedIds,
   aiBreak,
   aiImprove,
   aiRedesign,
@@ -18,6 +19,7 @@ import {
   push,
   restoreFromCloud,
   switchBranch,
+  tip,
   type ModelState,
 } from '../src/model'
 
@@ -291,5 +293,51 @@ describe('model', () => {
     s = commit(aiImprove(s), 'A1')
     expect(branchCommits(s, 'a')).toHaveLength(1)
     expect(branchCommits(s, 'main')).toHaveLength(2)
+  })
+
+  // --- protecting a live branch's fork from being dropped as "abandoned" ---
+
+  it('rewriting main history after goBack does not orphan an active branch forked from the rewritten commit', () => {
+    let s = createBranch(seeded(), 'deneme') // forkId = Özellik 1 (c2)
+    s = commit(aiImprove(s), 'Deneme işi') // c3 on deneme
+    const forkId = s.branches[0].forkId
+    s = switchBranch(s, 'main')
+    s = goBack(s) // main head back to Başlangıç (c1); c2 would normally be "abandoned"
+    s = commit(aiImprove(s), 'Temiz devam') // new main commit off c1
+
+    // c2 (deneme's fork) must survive — it's still in the DAG...
+    expect(s.commits.some((c) => c.id === forkId)).toBe(true)
+    // ...and is not rendered as abandoned/dimmed either.
+    expect(abandonedIds(s)).not.toContain(forkId)
+    // ...so deneme is still fully usable: switchable, mergeable.
+    expect(tip(s, 'deneme')?.label).toBe('Deneme işi')
+    expect(switchBranch(s, 'deneme').currentBranch).toBe('deneme')
+    const merged = mergeBranch(switchBranch(s, 'deneme'))
+    expect(merged.branches).toEqual([])
+    expect(merged.commits.some((c) => c.label === 'Deneme işi')).toBe(true)
+  })
+
+  it('the same rewrite does not strand a pushed branch with an open PR — the PR always stays attached to a live branch', () => {
+    let s = createBranch(seeded(), 'deneme')
+    s = push(commit(aiImprove(s), 'Deneme işi'))
+    s = openPR(s) // requires currentBranch === 'deneme' and everything pushed
+    expect(s.pr).toEqual({ status: 'open', from: 'deneme' })
+
+    s = switchBranch(s, 'main')
+    s = goBack(s)
+    s = commit(aiImprove(s), 'Temiz devam')
+
+    // Invariant: a non-merged PR's `from` branch is always still active.
+    const prBranchIsActive = !s.pr || s.pr.status === 'merged' || s.branches.some((b) => b.name === s.pr!.from)
+    expect(prBranchIsActive).toBe(true)
+    expect(s.pr).toEqual({ status: 'open', from: 'deneme' }) // survives, still usable
+    expect(tip(s, 'deneme')).not.toBeNull()
+
+    // Survives a laptop death + cloud restore too, since it was pushed.
+    const revived = restoreFromCloud(laptopDie(s))
+    const revivedPrOk = !revived.pr || revived.pr.status === 'merged' || revived.branches.some((b) => b.name === revived.pr!.from)
+    expect(revivedPrOk).toBe(true)
+    expect(revived.pr).toEqual({ status: 'open', from: 'deneme' })
+    expect(revived.branches.some((b) => b.name === 'deneme')).toBe(true)
   })
 })

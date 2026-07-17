@@ -99,7 +99,8 @@ function nextX(s: ModelState): number {
 }
 
 // Commits on the head's branch that come after the head (reachable only by
-// going forward). Drawn dimmed; dropped when a new commit is made.
+// going forward). Drawn dimmed; dropped when a new commit is made — unless
+// an active branch depends on them (see protectedForkAncestors).
 export function abandonedIds(s: ModelState): string[] {
   const head = headCommit(s)
   if (!head) return []
@@ -109,7 +110,9 @@ export function abandonedIds(s: ModelState): string[] {
     ids.push(t.id)
     t = find(s, t.parentId)
   }
-  return t ? ids : []
+  if (!t) return []
+  const protectedIds = protectedForkAncestors(s)
+  return ids.filter((id) => !protectedIds.has(id))
 }
 
 function addCommit(
@@ -265,6 +268,21 @@ function reachableFrom(s: ModelState, startId: string | null): Set<string> {
     ids.add(id)
     if (c.parentId) stack.push(c.parentId)
     if (c.mergeFromId) stack.push(c.mergeFromId)
+  }
+  return ids
+}
+
+// Every active branch's fork commit and all its ancestors. A branch's fork
+// is its dependency anchor — tip() falls back to it when the branch has no
+// commits of its own yet, so dropping it as "abandoned" would orphan the
+// branch forever (it could never be switched to, merged, or deleted).
+// Branches only ever fork off main, so this only ever protects main commits;
+// a branch's own forward commits are never in another branch's abandoned
+// list and are free to be dropped by its own goBack+commit (unaffected here).
+function protectedForkAncestors(s: ModelState): Set<string> {
+  const ids = new Set<string>()
+  for (const b of s.branches) {
+    for (const id of reachableFrom(s, b.forkId)) ids.add(id)
   }
   return ids
 }
