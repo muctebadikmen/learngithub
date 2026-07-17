@@ -26,7 +26,8 @@ import {
   switchBranch,
   teammatePush,
 } from './model'
-import { Scene, SCENE_H, SCENE_W } from './Scene'
+import { Scene } from './Scene'
+import { sceneLayout, SCENE_H } from './sceneLayout'
 import { useZoom } from './useZoom'
 
 type Mode = 'guided' | 'sandbox'
@@ -59,7 +60,7 @@ export default function App() {
   const [showCmds, setShowCmds] = useState(false)
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark'))
   const primaryRef = useRef<HTMLButtonElement>(null)
-  const zoom = useZoom(SCENE_W, SCENE_H)
+  const zoom = useZoom(sceneLayout(model).sceneW, SCENE_H)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme

@@ -1,5 +1,6 @@
 import type { Branch, Commit, ModelState } from './model'
 import { abandonedIds, branchCommits, headCommit, parentLaneIdx } from './model'
+import { GAP, sceneLayout } from './sceneLayout'
 
 // One persistent scene: computer (left) + GitHub (right), drawn from ModelState.
 // Node positions/opacity animate via CSS transitions in index.css (.scene-node).
@@ -75,11 +76,11 @@ function AppCard({ state }: { state: ModelState }) {
 
 type Slot = { px: (x: number) => number; r: number; laneY: (laneIdx: number) => number }
 
-function timelineSlots(commits: Commit[], startX: number, endX: number, r: number, laneYFn: (laneIdx: number) => number): Slot {
-  const maxX = commits.length ? Math.max(...commits.map((c) => c.x)) : 0
-  const gap = maxX > 0 ? Math.min(120, (endX - startX) / maxX) : 0
+// Fixed spacing (GAP): nodes never compress, so labels never collide — the
+// scene widens instead (see sceneLayout).
+function timelineSlots(startX: number, r: number, laneYFn: (laneIdx: number) => number): Slot {
   return {
-    px: (x: number) => startX + x * gap,
+    px: (x: number) => startX + x * GAP,
     r,
     laneY: laneYFn,
   }
@@ -262,14 +263,14 @@ function ConflictMarker({ state, slot }: { state: ModelState; slot: Slot }) {
   )
 }
 
-function GitHubSide({ state, labeled }: { state: ModelState; labeled: boolean }) {
+function GitHubSide({ state, labeled, panelW }: { state: ModelState; labeled: boolean; panelW: number }) {
   const pushed = state.commits.filter((c) => state.pushedIds.includes(c.id))
   // GitHub can be ahead of local: a teammate's pushed-but-not-pulled work
   // (state.remoteExtra) shows up here even though the computer panel never
   // draws it — that asymmetry is the point.
   const cloudCommits = [...pushed, ...state.remoteExtra]
   const remoteIds = new Set(state.remoteExtra.map((c) => c.id))
-  const slot = timelineSlots(cloudCommits, 852, 1206, 12, cloudLaneY)
+  const slot = timelineSlots(852, 12, cloudLaneY)
   return (
     <g>
       <text x={824} y={72} fontSize={22} fontWeight={800} fill="var(--ink)">
@@ -291,11 +292,11 @@ function GitHubSide({ state, labeled }: { state: ModelState; labeled: boolean })
       ) : (
         <g>
           <g className="scene-node">
-            <rect x={824} y={120} width={416} height={54} rx={12} fill="var(--pill-bg)" stroke="var(--chip-stroke)" />
+            <rect x={824} y={120} width={panelW - 48} height={54} rx={12} fill="var(--pill-bg)" stroke="var(--chip-stroke)" />
             <text x={846} y={153} fontSize={16} fill="var(--ink-soft)">
               📦 sen / <tspan fontWeight={800}>uygulamam</tspan>
             </text>
-            <text x={1218} y={153} fontSize={14} fill="var(--ink-faint)" textAnchor="end">
+            <text x={800 + panelW - 22} y={153} fontSize={14} fill="var(--ink-faint)" textAnchor="end">
               {cloudCommits.length} commit
             </text>
           </g>
@@ -338,30 +339,30 @@ function GitHubSide({ state, labeled }: { state: ModelState; labeled: boolean })
   )
 }
 
-export const SCENE_W = 1280
-export const SCENE_H = 720
-
 export function Scene({ state, labeled = false }: { state: ModelState; labeled?: boolean }) {
-  const slot = timelineSlots(state.commits, 116, 700, 18, laneY)
+  const slot = timelineSlots(116, 18, laneY)
+  const { computerPanelW, repoBoxW, ghPanelW, dx, sceneW, sceneH } = sceneLayout(state)
   return (
     <svg
-      viewBox={`0 0 ${SCENE_W} ${SCENE_H}`}
-      width={SCENE_W}
-      height={SCENE_H}
+      viewBox={`0 0 ${sceneW} ${sceneH}`}
+      width={sceneW}
+      height={sceneH}
       className="block max-w-none"
       role="img"
       aria-label="GitHub görselleştirmesi"
     >
       {/* computer panel */}
-      <rect x={24} y={24} width={744} height={672} rx={20} fill="var(--panel)" stroke="var(--panel-stroke)" />
-      {/* github panel */}
-      <rect x={800} y={24} width={456} height={672} rx={20} fill="var(--panel-2)" stroke="var(--panel-stroke)" />
+      <rect x={24} y={24} width={computerPanelW} height={672} rx={20} fill="var(--panel)" stroke="var(--panel-stroke)" />
+      {/* github panel (shifted right by dx as the computer panel grows) */}
+      <g transform={`translate(${dx}, 0)`}>
+        <rect x={800} y={24} width={ghPanelW} height={672} rx={20} fill="var(--panel-2)" stroke="var(--panel-stroke)" />
+      </g>
       <text x={48} y={72} fontSize={22} fontWeight={800} fill="var(--ink)">
         💻 Senin bilgisayarın
       </text>
       {state.hasRepo && (
         <g>
-          <rect x={48} y={92} width={696} height={580} rx={16} fill="none" stroke="var(--chip-stroke)" strokeWidth={1.5} strokeDasharray="10 8" />
+          <rect x={48} y={92} width={repoBoxW} height={580} rx={16} fill="none" stroke="var(--chip-stroke)" strokeWidth={1.5} strokeDasharray="10 8" />
           <rect x={64} y={78} width={150} height={28} rx={14} fill="var(--panel)" />
           <text x={76} y={98} fontSize={15} fontWeight={700} fill="var(--ink-muted)">
             📦 repo: uygulamam
@@ -373,7 +374,9 @@ export function Scene({ state, labeled = false }: { state: ModelState; labeled?:
       <GhostForks state={state} slot={slot} />
       <BranchPills state={state} slot={slot} />
       <ConflictMarker state={state} slot={slot} />
-      <GitHubSide state={state} labeled={labeled} />
+      <g transform={`translate(${dx}, 0)`}>
+        <GitHubSide state={state} labeled={labeled} panelW={ghPanelW} />
+      </g>
       {labeled && state.commits.length > 0 && (
         <g fontSize={15} fill="var(--warn)">
           <text x={396} y={664} textAnchor="middle">
@@ -388,14 +391,14 @@ export function Scene({ state, labeled = false }: { state: ModelState; labeled?:
       )}
       {state.laptopDead && (
         <g>
-          <rect x={24} y={24} width={744} height={672} rx={20} fill="var(--scrim)" opacity={0.86} />
-          <text x={396} y={330} fontSize={72} textAnchor="middle">
+          <rect x={24} y={24} width={computerPanelW} height={672} rx={20} fill="var(--scrim)" opacity={0.86} />
+          <text x={24 + computerPanelW / 2} y={330} fontSize={72} textAnchor="middle">
             💀
           </text>
-          <text x={396} y={396} fontSize={26} fontWeight={800} fill="var(--danger-hover)" textAnchor="middle">
+          <text x={24 + computerPanelW / 2} y={396} fontSize={26} fontWeight={800} fill="var(--danger-hover)" textAnchor="middle">
             bilgisayar çöktü
           </text>
-          <text x={396} y={430} fontSize={17} fill="var(--ink-muted)" textAnchor="middle">
+          <text x={24 + computerPanelW / 2} y={430} fontSize={17} fill="var(--ink-muted)" textAnchor="middle">
             buradaki her şey gitti…
           </text>
         </g>
