@@ -17,9 +17,13 @@ import {
   MAX_BRANCHES,
   mergeBranch,
   openPR,
+  pull,
   push,
+  remoteMainTip,
+  resolveConflict,
   restoreFromCloud,
   switchBranch,
+  teammatePush,
 } from './model'
 import { Scene, SCENE_H, SCENE_W } from './Scene'
 import { useZoom } from './useZoom'
@@ -289,6 +293,14 @@ function sandboxActions(s: ModelState): SandboxButton[] {
   if (s.laptopDead) {
     return [{ label: '☁️ GitHub’dan geri indir (clone)', apply: restoreFromCloud, kind: 'primary', cmd: 'git clone {repo-adresi}' }]
   }
+  if (s.merging) {
+    const { from, into } = s.merging
+    return [
+      { label: `🅐 "${from}" hâlini tut`, apply: (m) => resolveConflict(m, 'theirs'), kind: 'primary', cmd: 'git checkout --theirs . && git add . && git commit' },
+      { label: `🅑 "${into}" hâlini tut`, apply: (m) => resolveConflict(m, 'ours'), kind: 'primary', cmd: 'git checkout --ours . && git add . && git commit' },
+      { label: '🔀 İkisini birleştir', apply: (m) => resolveConflict(m, 'both'), cmd: '# elle düzenle, sonra: git add . && git commit' },
+    ]
+  }
   const buttons: SandboxButton[] = [
     { label: '🤖 AI’ya geliştirt', apply: aiImprove, kind: 'primary' },
     { label: '💥 AI bozdu!', apply: aiBreak, kind: 'danger', disabled: s.workLook.broken },
@@ -301,6 +313,8 @@ function sandboxActions(s: ModelState): SandboxButton[] {
     },
     { label: '⏪ Geri dön', apply: goBack, disabled: goBack(s) === s, cmd: s.dirty ? 'git restore .' : 'git reset --hard HEAD~1' },
     { label: `☁️ Push'la (${s.currentBranch})`, apply: push, disabled: push(s) === s, cmd: `git push -u origin ${s.currentBranch}` },
+    { label: '👥 Takım arkadaşı push’lasın', apply: teammatePush, disabled: !remoteMainTip(s), cmd: 'git fetch  # başka biri push’ladı' },
+    { label: '☁️ Çek (pull)', apply: pull, disabled: pull(s) === s, cmd: 'git pull' },
   ]
 
   const activeNames = new Set(s.branches.map((b) => b.name))
