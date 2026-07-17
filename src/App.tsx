@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { CHAPTERS, CHEAT_SHEET, STEPS, stepIndexById, type StepButton } from './chapters'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { CHAPTERS, CHEAT_SHEET, STEPS, stepIndexById, type Step, type StepButton } from './chapters'
 import type { ModelState } from './model'
 import {
   aiBreak,
@@ -159,30 +159,18 @@ export default function App() {
         </div>
       </header>
 
-      <main className={`relative min-h-0 flex-1 px-4 ${mode === 'sandbox' ? 'flex gap-4' : ''}`}>
-        {mode === 'sandbox' && (
-          <div className="flex w-60 shrink-0 flex-col gap-3 overflow-y-auto py-1">
-            <EventLine event={model.lastEvent} />
-            <p className="text-sm text-[var(--ink-muted)]">Serbestsin: boz, kaydet, geri dön.</p>
-            <div className="flex flex-col gap-2">
-              {sandboxButtons.map((b) => (
-                <button
-                  key={b.label}
-                  className={`cmd-rail ${BTN[b.kind ?? 'ghost']} w-full !rounded-xl !px-3 !py-2 text-left !text-sm`}
-                  data-cmd={b.cmd}
-                  disabled={b.disabled}
-                  onClick={() => setModel(b.apply(model))}
-                >
-                  {b.label}
-                  {showCmds && b.cmd && <span className="mt-1 block font-mono text-xs font-normal opacity-60">{b.cmd}</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+      <main className="relative flex min-h-0 flex-1 gap-4 px-4">
+        <aside className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto py-2">
+          <EventLine event={model.lastEvent} />
+          {mode === 'guided' ? (
+            <GuidedRail step={step} showCmds={showCmds} primaryRef={primaryRef} onPress={pressStepButton} />
+          ) : (
+            <SandboxRail buttons={sandboxButtons} showCmds={showCmds} model={model} setModel={setModel} />
+          )}
+        </aside>
         <div
           ref={zoom.containerRef}
-          className={`panel-card relative h-full touch-none select-none overflow-clip rounded-3xl ${mode === 'sandbox' ? 'min-w-0 flex-1' : 'w-full'}`}
+          className="panel-card relative h-full min-w-0 flex-1 touch-none select-none overflow-clip rounded-3xl"
           style={{ cursor: zoom.dragging ? 'grabbing' : 'grab' }}
           {...zoom.handlers}
         >
@@ -213,43 +201,84 @@ export default function App() {
           </div>
         </div>
       </main>
-
-      {mode === 'guided' && (
-        <footer className="px-6 pb-5 pt-2">
-          <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 text-center">
-            <EventLine event={model.lastEvent} />
-            <p key={step.id} className="step-text max-w-3xl text-balance text-xl font-medium leading-relaxed text-[var(--ink-strong)]">
-              {step.text}
-            </p>
-            {step.cheatSheet && (
-              <div className="panel-card grid w-full max-w-4xl grid-cols-1 gap-x-8 gap-y-1.5 rounded-2xl border border-[var(--chip-stroke)] bg-[var(--pill-bg)]/60 px-6 py-4 text-left sm:grid-cols-2">
-                {CHEAT_SHEET.map(([phrase, meaning]) => (
-                  <p key={phrase} className="text-base">
-                    <span className="font-bold text-[var(--accent-soft)]">{phrase}</span>
-                    <span className="text-[var(--ink-muted)]"> → {meaning}</span>
-                  </p>
-                ))}
-              </div>
-            )}
-            <div className="flex flex-wrap justify-center gap-3">
-              {step.buttons.map((btn, i) => (
-                <button
-                  key={btn.label}
-                  ref={i === 0 ? primaryRef : undefined}
-                  className={BTN[btn.kind ?? 'primary']}
-                  data-cmd={btn.cmd}
-                  onClick={() => pressStepButton(btn)}
-                >
-                  {btn.label}
-                  {showCmds && btn.cmd && <span className="mt-1 block font-mono text-xs font-normal opacity-60">{btn.cmd}</span>}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-[var(--ink-faint)]">boşluk / → tuşu da ilerletir</p>
-          </div>
-        </footer>
-      )}
     </div>
+  )
+}
+
+function GuidedRail({
+  step,
+  showCmds,
+  primaryRef,
+  onPress,
+}: {
+  step: Step
+  showCmds: boolean
+  primaryRef: RefObject<HTMLButtonElement | null>
+  onPress: (btn: StepButton) => void
+}) {
+  return (
+    <>
+      <p key={step.id} className="step-text text-balance text-lg font-medium leading-relaxed text-[var(--ink-strong)]">
+        {step.text}
+      </p>
+      {step.cheatSheet && (
+        <div className="panel-card grid w-full grid-cols-1 gap-x-6 gap-y-1.5 rounded-2xl border border-[var(--chip-stroke)] bg-[var(--pill-bg)]/60 px-4 py-3 text-left">
+          {CHEAT_SHEET.map(([phrase, meaning]) => (
+            <p key={phrase} className="text-sm">
+              <span className="font-bold text-[var(--accent-soft)]">{phrase}</span>
+              <span className="text-[var(--ink-muted)]"> → {meaning}</span>
+            </p>
+          ))}
+        </div>
+      )}
+      <div className="flex flex-col gap-2">
+        {step.buttons.map((btn, i) => (
+          <button
+            key={btn.label}
+            ref={i === 0 ? primaryRef : undefined}
+            className={`${BTN[btn.kind ?? 'primary']} w-full !rounded-xl !px-4 !py-2.5 !text-base`}
+            data-cmd={btn.cmd}
+            onClick={() => onPress(btn)}
+          >
+            {btn.label}
+            {showCmds && btn.cmd && <span className="mt-1 block font-mono text-xs font-normal opacity-60">{btn.cmd}</span>}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-[var(--ink-faint)]">boşluk / → tuşu da ilerletir</p>
+    </>
+  )
+}
+
+function SandboxRail({
+  buttons,
+  showCmds,
+  model,
+  setModel,
+}: {
+  buttons: SandboxButton[]
+  showCmds: boolean
+  model: ModelState
+  setModel: (m: ModelState) => void
+}) {
+  return (
+    <>
+      <p className="text-sm text-[var(--ink-muted)]">Serbestsin: boz, kaydet, geri dön.</p>
+      <div className="flex flex-col gap-2">
+        {buttons.map((b) => (
+          <button
+            key={b.label}
+            className={`cmd-rail ${BTN[b.kind ?? 'ghost']} w-full !rounded-xl !px-3 !py-2 text-left !text-sm`}
+            data-cmd={b.cmd}
+            disabled={b.disabled}
+            onClick={() => setModel(b.apply(model))}
+          >
+            {b.label}
+            {showCmds && b.cmd && <span className="mt-1 block font-mono text-xs font-normal opacity-60">{b.cmd}</span>}
+          </button>
+        ))}
+      </div>
+    </>
   )
 }
 
