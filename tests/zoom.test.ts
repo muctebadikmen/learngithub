@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { clampScale, fitTransform, zoomToward } from '../src/useZoom'
 
 describe('clampScale', () => {
-  it('clamps below MIN to 0.35', () => {
-    expect(clampScale(0)).toBe(0.35)
-    expect(clampScale(0.1)).toBe(0.35)
+  it('clamps below MIN to 0.5', () => {
+    expect(clampScale(0)).toBe(0.5)
+    expect(clampScale(0.1)).toBe(0.5)
   })
 
-  it('clamps above MAX to 4', () => {
-    expect(clampScale(10)).toBe(4)
-    expect(clampScale(4.01)).toBe(4)
+  it('clamps above MAX to 6', () => {
+    expect(clampScale(10)).toBe(6)
+    expect(clampScale(6.01)).toBe(6)
   })
 
   it('passes through 1 unchanged', () => {
@@ -56,6 +56,6 @@ describe('fitTransform', () => {
 
   it('clamps to MIN_SCALE for a tiny container', () => {
     const result = fitTransform(50, 50, 1280, 720)
-    expect(result.scale).toBe(0.35)
+    expect(result.scale).toBe(0.5)
   })
 })

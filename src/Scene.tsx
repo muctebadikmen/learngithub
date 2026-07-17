@@ -77,7 +77,7 @@ type Slot = { px: (x: number) => number; r: number; laneY: (laneIdx: number) => 
 
 function timelineSlots(commits: Commit[], startX: number, endX: number, r: number, laneYFn: (laneIdx: number) => number): Slot {
   const maxX = commits.length ? Math.max(...commits.map((c) => c.x)) : 0
-  const gap = maxX > 0 ? Math.min(92, (endX - startX) / maxX) : 0
+  const gap = maxX > 0 ? Math.min(120, (endX - startX) / maxX) : 0
   return {
     px: (x: number) => startX + x * gap,
     r,

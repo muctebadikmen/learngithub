@@ -4,8 +4,8 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 // Scene zoom & pan: ctrl/cmd+scroll zooms toward the cursor, drag pans,
 // the overlay buttons zoom around the container center, dblclick/⤢ resets.
 
-const MIN_SCALE = 0.35
-const MAX_SCALE = 4
+const MIN_SCALE = 0.5
+const MAX_SCALE = 6
 const BUTTON_ZOOM_STEP = 1.25
 const WHEEL_SENSITIVITY = 0.0022
 
