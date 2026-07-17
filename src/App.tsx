@@ -105,7 +105,7 @@ export default function App() {
   return (
     <div className="flex h-dvh flex-col bg-[var(--bg)] text-[var(--ink)]">
       <header className="flex items-center justify-between gap-4 border-b border-[var(--panel-stroke)] px-6 py-3">
-        <h1 className="text-xl font-black tracking-tight">
+        <h1 className="text-[var(--ink-strong)] text-xl font-black tracking-tight">
           GitHub <span className="text-[var(--accent-hover)]">Rehberi</span>
         </h1>
         {mode === 'guided' ? (
@@ -162,7 +162,7 @@ export default function App() {
       <main className="relative min-h-0 flex-1 px-4">
         <div
           ref={zoom.containerRef}
-          className="panel-card relative h-full w-full touch-none overflow-hidden rounded-3xl"
+          className="panel-card relative h-full w-full touch-none select-none overflow-hidden rounded-3xl"
           style={{ cursor: zoom.dragging ? 'grabbing' : 'grab' }}
           {...zoom.handlers}
         >
@@ -198,7 +198,7 @@ export default function App() {
         {mode === 'guided' ? (
           <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 text-center">
             <EventLine event={model.lastEvent} />
-            <p key={step.id} className="step-text max-w-3xl text-balance text-xl font-medium leading-relaxed text-[var(--ink)]">
+            <p key={step.id} className="step-text max-w-3xl text-balance text-xl font-medium leading-relaxed text-[var(--ink-strong)]">
               {step.text}
             </p>
             {step.cheatSheet && (
@@ -298,12 +298,12 @@ function sandboxActions(s: ModelState): SandboxButton[] {
       kind: 'primary',
       cmd: `git switch main && git merge ${name}`,
     })
-    buttons.push({ label: `🗑️ Sil: ${name}`, apply: deleteBranch, kind: 'danger', cmd: `git branch -D ${name}` })
+    buttons.push({ label: `🗑️ Sil: ${name}`, apply: deleteBranch, kind: 'danger', cmd: `git switch main && git branch -D ${name}` })
     if (!s.pr || s.pr.status === 'merged') {
       buttons.push({ label: '⇄ PR aç', apply: openPR, disabled: !allPushed, cmd: 'gh pr create' })
     }
     if (s.pr?.status === 'open') {
-      buttons.push({ label: `👀 PR'ı onayla`, apply: approvePR, kind: 'primary', cmd: 'GitHub arayüzünde: Review → Approve' })
+      buttons.push({ label: `👀 PR'ı onayla (${s.pr.from})`, apply: approvePR, kind: 'primary', cmd: 'GitHub arayüzünde: Review → Approve' })
     }
   }
 

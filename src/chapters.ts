@@ -163,7 +163,7 @@ export const STEPS: Step[] = [
     text: 'Karar anı. Yeni tasarım…',
     buttons: [
       { label: 'Beğendim → merge et', apply: mergeBranch, next: 'branch-merged', cmd: 'git switch main && git merge deneme' },
-      { label: 'Olmadı → branch’i sil', kind: 'danger', apply: deleteBranch, next: 'branch-deleted', cmd: 'git branch -D deneme' },
+      { label: 'Olmadı → branch’i sil', kind: 'danger', apply: deleteBranch, next: 'branch-deleted', cmd: 'git switch main && git branch -D deneme' },
     ],
   },
   {
@@ -208,7 +208,7 @@ export const STEPS: Step[] = [
     id: 'pr-merge',
     chapter: 5,
     text: 'Onay geldi. Merge et — özellik main’e katılsın.',
-    buttons: [{ label: 'Merge et', apply: pipe(mergeBranch, push), cmd: 'git switch main && git merge ozellik' }],
+    buttons: [{ label: 'Merge et', apply: pipe(mergeBranch, push), cmd: 'git switch main && git merge ozellik && git push' }],
   },
   {
     id: 'pr-done',
