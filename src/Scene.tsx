@@ -296,10 +296,20 @@ function GitHubSide({ state, labeled }: { state: ModelState; labeled: boolean })
   )
 }
 
+export const SCENE_W = 1280
+export const SCENE_H = 720
+
 export function Scene({ state, labeled = false }: { state: ModelState; labeled?: boolean }) {
   const slot = timelineSlots(state.commits, 116, 700, 18, laneY)
   return (
-    <svg viewBox="0 0 1280 720" className="h-full w-full" role="img" aria-label="GitHub görselleştirmesi">
+    <svg
+      viewBox={`0 0 ${SCENE_W} ${SCENE_H}`}
+      width={SCENE_W}
+      height={SCENE_H}
+      className="block max-w-none"
+      role="img"
+      aria-label="GitHub görselleştirmesi"
+    >
       {/* computer panel */}
       <rect x={24} y={24} width={744} height={672} rx={20} fill="var(--panel)" stroke="var(--panel-stroke)" />
       {/* github panel */}

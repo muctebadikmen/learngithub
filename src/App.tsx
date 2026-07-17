@@ -20,7 +20,7 @@ import {
   restoreFromCloud,
   switchBranch,
 } from './model'
-import { Scene } from './Scene'
+import { Scene, SCENE_H, SCENE_W } from './Scene'
 import { useZoom } from './useZoom'
 
 type Mode = 'guided' | 'sandbox'
@@ -53,7 +53,7 @@ export default function App() {
   const [showCmds, setShowCmds] = useState(false)
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark'))
   const primaryRef = useRef<HTMLButtonElement>(null)
-  const zoom = useZoom()
+  const zoom = useZoom(SCENE_W, SCENE_H)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -159,15 +159,35 @@ export default function App() {
         </div>
       </header>
 
-      <main className="relative min-h-0 flex-1 px-4">
+      <main className={`relative min-h-0 flex-1 px-4 ${mode === 'sandbox' ? 'flex gap-4' : ''}`}>
+        {mode === 'sandbox' && (
+          <div className="flex w-60 shrink-0 flex-col gap-3 overflow-y-auto py-1">
+            <EventLine event={model.lastEvent} />
+            <p className="text-sm text-[var(--ink-muted)]">Serbestsin: boz, kaydet, geri dön.</p>
+            <div className="flex flex-col gap-2">
+              {sandboxButtons.map((b) => (
+                <button
+                  key={b.label}
+                  className={`cmd-rail ${BTN[b.kind ?? 'ghost']} w-full !rounded-xl !px-3 !py-2 text-left !text-sm`}
+                  data-cmd={b.cmd}
+                  disabled={b.disabled}
+                  onClick={() => setModel(b.apply(model))}
+                >
+                  {b.label}
+                  {showCmds && b.cmd && <span className="mt-1 block font-mono text-xs font-normal opacity-60">{b.cmd}</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div
           ref={zoom.containerRef}
-          className="panel-card relative h-full w-full touch-none select-none overflow-hidden rounded-3xl"
+          className={`panel-card relative h-full touch-none select-none overflow-clip rounded-3xl ${mode === 'sandbox' ? 'min-w-0 flex-1' : 'w-full'}`}
           style={{ cursor: zoom.dragging ? 'grabbing' : 'grab' }}
           {...zoom.handlers}
         >
           <div
-            className={`zoom-wrapper h-full w-full ${zoom.animate ? '' : 'zoom-instant'}`}
+            className={`zoom-wrapper w-max ${zoom.animate ? '' : 'zoom-instant'}`}
             style={{ transform: `translate(${zoom.transform.tx}px, ${zoom.transform.ty}px) scale(${zoom.transform.scale})`, transformOrigin: '0 0' }}
           >
             <Scene state={model} labeled={mode === 'guided' && !!step.cheatSheet} />
@@ -179,13 +199,13 @@ export default function App() {
             onDoubleClick={(e) => e.stopPropagation()}
           >
             <div className="flex gap-1.5">
-              <button className={ZOOM_BTN} onClick={zoom.zoomOut} aria-label="Uzaklaştır">
+              <button type="button" className={ZOOM_BTN} onClick={zoom.zoomOut} aria-label="Uzaklaştır">
                 −
               </button>
-              <button className={ZOOM_BTN} onClick={zoom.zoomIn} aria-label="Yakınlaştır">
+              <button type="button" className={ZOOM_BTN} onClick={zoom.zoomIn} aria-label="Yakınlaştır">
                 +
               </button>
-              <button className={ZOOM_BTN} onClick={zoom.reset} aria-label="Görünümü sıfırla">
+              <button type="button" className={ZOOM_BTN} onClick={zoom.reset} aria-label="Görünümü sıfırla">
                 ⤢
               </button>
             </div>
@@ -194,8 +214,8 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="px-6 pb-5 pt-2">
-        {mode === 'guided' ? (
+      {mode === 'guided' && (
+        <footer className="px-6 pb-5 pt-2">
           <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 text-center">
             <EventLine event={model.lastEvent} />
             <p key={step.id} className="step-text max-w-3xl text-balance text-xl font-medium leading-relaxed text-[var(--ink-strong)]">
@@ -227,27 +247,8 @@ export default function App() {
             </div>
             <p className="text-xs text-[var(--ink-faint)]">boşluk / → tuşu da ilerletir</p>
           </div>
-        ) : (
-          <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 text-center">
-            <EventLine event={model.lastEvent} />
-            <p className="text-base text-[var(--ink-muted)]">Serbestsin: boz, kaydet, geri dön. Burada hiçbir şey kalıcı olarak bozulmaz.</p>
-            <div className="flex flex-wrap justify-center gap-2.5">
-              {sandboxButtons.map((b) => (
-                <button
-                  key={b.label}
-                  className={`${BTN[b.kind ?? 'ghost']} !px-4 !py-2.5 !text-base`}
-                  data-cmd={b.cmd}
-                  disabled={b.disabled}
-                  onClick={() => setModel(b.apply(model))}
-                >
-                  {b.label}
-                  {showCmds && b.cmd && <span className="mt-1 block font-mono text-xs font-normal opacity-60">{b.cmd}</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </footer>
+        </footer>
+      )}
     </div>
   )
 }

@@ -247,6 +247,16 @@
 [data-cmd]:hover::before {
   opacity: 1;
 }
+/* Sandbox rail buttons sit in a narrow overflow-y-auto column, which clips a
+   centered nowrap tooltip. Anchor it to the button width and let it wrap so it
+   stays inside the rail (works for long branch commands too). */
+.cmd-rail[data-cmd]::after {
+  left: 8px;
+  right: 8px;
+  transform: none;
+  max-width: none;
+  white-space: normal;
+}
 @media (prefers-reduced-motion: reduce) {
   [data-cmd]::after, [data-cmd]::before { transition: none; }
 }

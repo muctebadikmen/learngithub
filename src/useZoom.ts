@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 
 // Scene zoom & pan: ctrl/cmd+scroll zooms toward the cursor, drag pans,
 // the overlay buttons zoom around the container center, dblclick/⤢ resets.
 
-const MIN_SCALE = 0.6
-const MAX_SCALE = 3
+const MIN_SCALE = 0.35
+const MAX_SCALE = 4
 const BUTTON_ZOOM_STEP = 1.25
 const WHEEL_SENSITIVITY = 0.0022
 
@@ -25,20 +25,45 @@ export function zoomToward(prev: ZoomTransform, cx: number, cy: number, factor: 
   return { scale, tx: cx - (cx - prev.tx) * k, ty: cy - (cy - prev.ty) * k }
 }
 
+// Centered fit: largest scale (× 0.94 breathing room) that fits the content
+// in the container, clamped, then translate so content is centered.
+export function fitTransform(
+  containerW: number, containerH: number, contentW: number, contentH: number,
+): ZoomTransform {
+  const raw = Math.min(containerW / contentW, containerH / contentH) * 0.94
+  const scale = clampScale(raw)
+  return {
+    scale,
+    tx: (containerW - contentW * scale) / 2,
+    ty: (containerH - contentH * scale) / 2,
+  }
+}
+
 type DragState = { pointerId: number; startX: number; startY: number; startTx: number; startTy: number }
 
-export function useZoom() {
+export function useZoom(contentW: number, contentH: number) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [transform, setTransform] = useState<ZoomTransform>(IDENTITY)
   const [animate, setAnimate] = useState(false)
   const [dragging, setDragging] = useState(false)
   const dragRef = useRef<DragState | null>(null)
+  // Tracks whether the user has manually panned/zoomed since the last fit,
+  // so container resizes don't yank a view they've adjusted.
+  const adjustedRef = useRef(false)
+
+  const fitToContainer = useCallback(() => {
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect) return
+    setTransform(fitTransform(rect.width, rect.height, contentW, contentH))
+    adjustedRef.current = false
+  }, [contentW, contentH])
 
   const zoomAtCenter = useCallback((factor: number) => {
     const rect = containerRef.current?.getBoundingClientRect()
     const cx = rect ? rect.width / 2 : 0
     const cy = rect ? rect.height / 2 : 0
     setAnimate(true)
+    adjustedRef.current = true
     setTransform((prev) => zoomToward(prev, cx, cy, factor))
   }, [])
 
@@ -47,8 +72,25 @@ export function useZoom() {
 
   const reset = useCallback(() => {
     setAnimate(true)
-    setTransform(IDENTITY)
-  }, [])
+    fitToContainer()
+  }, [fitToContainer])
+
+  // Initial framing: fit before paint so there's no visible identity flash.
+  useLayoutEffect(() => {
+    fitToContainer()
+  }, [fitToContainer])
+
+  // Re-fit on container resize, but only while the user hasn't manually
+  // panned/zoomed since the last fit.
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const observer = new ResizeObserver(() => {
+      if (!adjustedRef.current) fitToContainer()
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [fitToContainer])
 
   // Non-passive wheel listener (React's onWheel is passive, which would
   // silently ignore preventDefault on ctrl/cmd+scroll and trackpad pinch).
@@ -63,6 +105,7 @@ export function useZoom() {
       const cy = e.clientY - rect.top
       const factor = Math.exp(-e.deltaY * WHEEL_SENSITIVITY)
       setAnimate(false)
+      adjustedRef.current = true
       setTransform((prev) => zoomToward(prev, cx, cy, factor))
     }
     el.addEventListener('wheel', onWheel, { passive: false })
@@ -85,6 +128,7 @@ export function useZoom() {
     if (!drag || drag.pointerId !== e.pointerId) return
     const tx = drag.startTx + (e.clientX - drag.startX)
     const ty = drag.startTy + (e.clientY - drag.startY)
+    adjustedRef.current = true
     setTransform((prev) => ({ ...prev, tx, ty }))
   }, [])
 
