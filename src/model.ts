@@ -227,27 +227,38 @@ export function switchBranch(s: ModelState, name: string): ModelState {
   }
 }
 
+// A branch with a live child forked off it can't be merged or deleted yet —
+// that would orphan the child's parent lane and its fork ancestry story.
+function hasActiveChild(s: ModelState, name: string): boolean {
+  return s.branches.some((b) => b.parent === name)
+}
+
 export function mergeBranch(s: ModelState): ModelState {
   if (s.currentBranch === 'main') return s
-  const mergedName = s.currentBranch
-  const own = branchCommits(s, mergedName)
+  const name = s.currentBranch
+  if (hasActiveChild(s, name)) return s
+  const own = branchCommits(s, name)
   if (!own.length) return s
+  const branch = s.branches.find((b) => b.name === name)!
+  const parent = branch.parent
   const branchTip = own[own.length - 1]
-  const mainTip = tip(s, 'main')
-  const withHead = { ...s, currentBranch: 'main', headId: mainTip?.id ?? null }
-  const merged = addCommit(withHead, `Merge: ${mergedName}`, 'main', 0, mainTip?.id ?? null, branchTip.look, true, branchTip.id)
+  const parentTip = tip(s, parent)
+  const parentLane = parent === 'main' ? 0 : (s.branches.find((b) => b.name === parent)?.laneIdx ?? 0)
+  const withHead = { ...s, currentBranch: parent, headId: parentTip?.id ?? null }
+  const merged = addCommit(withHead, `Merge: ${name}`, parent, parentLane, parentTip?.id ?? null, branchTip.look, true, branchTip.id)
   return {
     ...merged,
-    branches: s.branches.filter((b) => b.name !== mergedName),
-    currentBranch: 'main',
-    pr: s.pr?.from === mergedName ? { ...s.pr, status: 'merged' } : s.pr,
-    lastEvent: `“${mergedName}” main'e katıldı.`,
+    branches: s.branches.filter((b) => b.name !== name),
+    currentBranch: parent,
+    pr: s.pr?.from === name ? { ...s.pr, status: 'merged' } : s.pr,
+    lastEvent: `“${name}” → “${parent}” birleşti.`,
   }
 }
 
 export function deleteBranch(s: ModelState): ModelState {
   if (s.currentBranch === 'main') return s
   const name = s.currentBranch
+  if (hasActiveChild(s, name)) return s
   const doomed = new Set(branchCommits(s, name).map((c) => c.id))
   const mainTip = tip(s, 'main')
   return {

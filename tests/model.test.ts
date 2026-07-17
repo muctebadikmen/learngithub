@@ -142,6 +142,27 @@ describe('model', () => {
     expect(parentLaneIdx(s, 'a2')).toBe(1)
   })
 
+  it('merging a sub-branch lands on its parent branch, not main', () => {
+    let s = createBranch(seeded(), 'a')
+    s = commit(aiImprove(s), 'A1')
+    s = createBranch(s, 'a2')
+    s = commit(aiImprove(s), 'A2')
+    const merged = mergeBranch(s) // a2 -> a
+    expect(merged.currentBranch).toBe('a')
+    expect(headCommit(merged)?.isMerge).toBe(true)
+    expect(merged.branches.map((b) => b.name)).toEqual(['a'])
+    expect(merged.commits.some((c) => c.label === 'A2')).toBe(true)
+  })
+
+  it('a branch with an active child cannot be merged or deleted yet', () => {
+    let s = createBranch(seeded(), 'a')
+    s = commit(aiImprove(s), 'A1')
+    s = createBranch(s, 'a2') // a has child a2
+    s = switchBranch(s, 'a')
+    expect(mergeBranch(s)).toBe(s) // guarded
+    expect(deleteBranch(s)).toBe(s) // guarded
+  })
+
   it('deleteBranch removes only that branch commits and returns to main tip', () => {
     let s = createBranch(seeded(), 'deneme')
     s = commit(aiImprove(s), 'Deneme işi')
