@@ -12,8 +12,12 @@ import {
   laptopDie,
   mergeBranch,
   openPR,
+  pull,
   push,
+  resolveConflict,
   restoreFromCloud,
+  switchBranch,
+  teammatePush,
 } from './model'
 
 export type StepButton = {
@@ -40,6 +44,9 @@ export const CHAPTERS = [
   'Push (buluta yedek)',
   'Branch (deneme hattı)',
   'Pull Request',
+  'Branch’tan branch',
+  'Takım & pull',
+  'Çakışma & çözüm',
   'Özet',
 ] as const
 
@@ -217,10 +224,111 @@ export const STEPS: Step[] = [
     buttons: [{ label: 'Devam →' }],
   },
 
-  // 7 — Özet
+  // 7 — Branch’tan branch
+  {
+    id: 'nested-branch-1',
+    chapter: 6,
+    text: 'Branch’ler iç içe olabilir: bir branch açıp, onun içinde daha küçük bir branch daha açabilirsin.',
+    buttons: [{ label: 'Branch aç (altyapi)', apply: (s) => createBranch(s, 'altyapi'), cmd: 'git switch -c altyapi' }],
+  },
+  {
+    id: 'nested-branch-2',
+    chapter: 6,
+    text: 'Şimdi “altyapi”nın içindesin. Buradan bir alt-branch daha aç.',
+    buttons: [{ label: 'Alt-branch aç (deney)', apply: (s) => createBranch(s, 'deney'), cmd: 'git switch -c deney' }],
+  },
+  {
+    id: 'nested-branch-work',
+    chapter: 6,
+    text: '“deney” hattında çalış ve kaydet.',
+    enter: aiImprove,
+    buttons: [{ label: 'Commit at (kaydet)', apply: (s) => commit(s, 'Deney işi'), cmd: 'git add . && git commit -m "mesaj"' }],
+  },
+  {
+    id: 'nested-branch-merge-child',
+    chapter: 6,
+    text: '“deney” bitti. Onu main’e değil, ait olduğu yere — “altyapi”ya — birleştirirsin.',
+    buttons: [{ label: 'Merge et (deney → altyapi)', apply: mergeBranch, cmd: 'git switch altyapi && git merge deney' }],
+  },
+  {
+    id: 'nested-branch-merge-parent',
+    chapter: 6,
+    text: 'Sonra “altyapi”yı da main’e birleştirirsin. Branch’ler böyle katman katman büyür.',
+    buttons: [{ label: 'Merge et (altyapi → main)', apply: mergeBranch, cmd: 'git switch main && git merge altyapi' }],
+  },
+
+  // 8 — Takım & pull
+  {
+    id: 'team-push',
+    chapter: 7,
+    text: 'Bir projede genelde yalnız değilsin. Başka biri de aynı main’e push’layabilir.',
+    enter: push,
+    buttons: [{ label: '👥 Takım arkadaşı push’lasın', apply: teammatePush, cmd: 'git fetch' }],
+  },
+  {
+    id: 'team-behind',
+    chapter: 7,
+    text: 'Artık GitHub’daki main senden ileride — senin kopyan geride kaldı.',
+    buttons: [{ label: 'Pull’la (çek)', apply: pull, cmd: 'git pull' }],
+  },
+  {
+    id: 'team-synced',
+    chapter: 7,
+    text: 'Pull ile arkadaşının işini kendine çektin; yine aynı noktadasınız. Ekip böyle çalışır.',
+    buttons: [{ label: 'Devam →' }],
+  },
+
+  // 9 — Çakışma & çözüm
+  {
+    id: 'conflict-branch',
+    chapter: 8,
+    text: 'Bazen ikiniz de aynı yeri değiştirirsiniz. Kuralım: sen bir branch’te tasarımı değiştir.',
+    buttons: [
+      {
+        label: 'Branch aç ve tasarımı değiştir',
+        apply: pipe((s) => createBranch(s, 'tasarim'), aiRedesign, (s) => commit(s, 'Senin tasarımın')),
+        cmd: 'git switch -c tasarim',
+      },
+    ],
+  },
+  {
+    id: 'conflict-main-change',
+    chapter: 8,
+    text: 'Aynı sırada main’de de tasarım değişti — ama farklı şekilde.',
+    buttons: [
+      {
+        label: 'Main’de de tasarım değişsin',
+        apply: pipe((s) => switchBranch(s, 'main'), aiRedesign, aiRedesign, (s) => commit(s, 'Main tasarımı'), (s) => switchBranch(s, 'tasarim')),
+      },
+    ],
+  },
+  {
+    id: 'conflict-attempt',
+    chapter: 8,
+    text: 'Şimdi “tasarim”ı main’e birleştirmeyi dene.',
+    buttons: [{ label: 'Merge et (tasarim → main)', apply: mergeBranch, cmd: 'git switch main && git merge tasarim' }],
+  },
+  {
+    id: 'conflict-choice',
+    chapter: 8,
+    text: 'Çakışma! İkiniz de tasarımı değiştirdiğiniz için Git hangisini tutacağını bilemiyor. Karar senin.',
+    buttons: [
+      { label: '🅐 "tasarim" hâlini tut', apply: (s) => resolveConflict(s, 'theirs'), cmd: 'git checkout --theirs . && git add .' },
+      { label: '🅑 "main" hâlini tut', apply: (s) => resolveConflict(s, 'ours'), cmd: 'git checkout --ours . && git add .' },
+      { label: '🔀 İkisini birleştir', apply: (s) => resolveConflict(s, 'both'), cmd: '# elle düzenle, sonra git add .' },
+    ],
+  },
+  {
+    id: 'conflict-done',
+    chapter: 8,
+    text: 'Çakışma korkutucu değil — sadece hangi hâli tutacağına karar verirsin, gerisini Git halleder.',
+    buttons: [{ label: 'Devam →' }],
+  },
+
+  // 10 — Özet
   {
     id: 'summary',
-    chapter: 6,
+    chapter: 9,
     text: 'Hepsi bu. Artık AI aracına ne diyeceğini biliyorsun:',
     cheatSheet: true,
     buttons: [{ label: 'Sandbox’ta oyna 🎮' }],
