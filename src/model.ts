@@ -37,6 +37,7 @@ export type ModelState = {
   counter: number
   lastEvent: string | null
   remoteExtra: Commit[] // commits a teammate pushed to GitHub that local hasn't pulled yet
+  merging: { from: string; into: string } | null // a merge blocked on an unresolved conflict
 }
 
 export const THEME_COUNT = 5
@@ -60,6 +61,7 @@ export function initialModel(): ModelState {
     counter: 0,
     lastEvent: null,
     remoteExtra: [],
+    merging: null,
   }
 }
 
@@ -235,6 +237,30 @@ function hasActiveChild(s: ModelState, name: string): boolean {
   return s.branches.some((b) => b.parent === name)
 }
 
+// Real conflict only when BOTH sides changed the same thing (the theme) away
+// from the shared fork, and landed on different values. If only one side
+// touched the theme — or both touched different things — there's nothing to
+// fight over and the merge auto-resolves.
+function conflictsBetween(base: AppLook, ours: AppLook, theirs: AppLook): boolean {
+  return ours.theme !== base.theme && theirs.theme !== base.theme && ours.theme !== theirs.theme
+}
+
+// Shared tail of a merge, clean or conflict-resolved: drop a merge commit on
+// `into` with the chosen `look`, retire the `from` branch, close out its PR.
+function completeMerge(s: ModelState, from: string, into: string, look: AppLook): ModelState {
+  const parentTip = tip(s, into)
+  const parentLane = into === 'main' ? 0 : (s.branches.find((b) => b.name === into)?.laneIdx ?? 0)
+  const branchTip = branchCommits(s, from).slice(-1)[0]
+  const withHead = { ...s, currentBranch: into, headId: parentTip?.id ?? null, merging: null }
+  const merged = addCommit(withHead, `Merge: ${from}`, into, parentLane, parentTip?.id ?? null, look, true, branchTip.id)
+  return {
+    ...merged,
+    branches: s.branches.filter((b) => b.name !== from),
+    currentBranch: into,
+    pr: s.pr?.from === from ? { ...s.pr, status: 'merged' } : s.pr,
+  }
+}
+
 export function mergeBranch(s: ModelState): ModelState {
   if (s.currentBranch === 'main') return s
   const name = s.currentBranch
@@ -245,16 +271,36 @@ export function mergeBranch(s: ModelState): ModelState {
   const parent = branch.parent
   const branchTip = own[own.length - 1]
   const parentTip = tip(s, parent)
-  const parentLane = parentLaneIdx(s, name)
-  const withHead = { ...s, currentBranch: parent, headId: parentTip?.id ?? null }
-  const merged = addCommit(withHead, `Merge: ${name}`, parent, parentLane, parentTip?.id ?? null, branchTip.look, true, branchTip.id)
-  return {
-    ...merged,
-    branches: s.branches.filter((b) => b.name !== name),
-    currentBranch: parent,
-    pr: s.pr?.from === name ? { ...s.pr, status: 'merged' } : s.pr,
-    lastEvent: `“${name}”, “${parent}” ile birleşti.`,
+  const fork = find(s, branch.forkId)
+  const diverged = !!parentTip && !!fork && parentTip.id !== fork.id
+  if (diverged && fork && conflictsBetween(fork.look, branchTip.look, parentTip!.look)) {
+    return {
+      ...s,
+      currentBranch: name,
+      merging: { from: name, into: parent },
+      lastEvent: `⚠️ Çakışma: “${name}” ile “${parent}” aynı yeri değiştirmiş. Çöz.`,
+    }
   }
+  return { ...completeMerge(s, name, parent, branchTip.look), lastEvent: `“${name}”, “${parent}” ile birleşti.` }
+}
+
+// Finish a conflicted merge with the chosen resolution: 'ours' keeps the
+// PARENT's look (git convention — "ours" is the branch you merge INTO),
+// 'theirs' keeps the incoming branch's look, 'both' takes the branch's theme
+// plus the larger block count from either side.
+export function resolveConflict(s: ModelState, choice: 'ours' | 'theirs' | 'both'): ModelState {
+  if (!s.merging) return s
+  const { from, into } = s.merging
+  const own = branchCommits(s, from)
+  const branchTip = own[own.length - 1]
+  const parentTip = tip(s, into)
+  const look: AppLook =
+    choice === 'ours'
+      ? { ...parentTip!.look }
+      : choice === 'theirs'
+        ? { ...branchTip.look }
+        : { theme: branchTip.look.theme, blocks: Math.max(branchTip.look.blocks, parentTip!.look.blocks), broken: false }
+  return { ...completeMerge(s, from, into, look), lastEvent: `✅ Çakışma çözüldü — “${from}”, “${into}” ile birleşti.` }
 }
 
 export function deleteBranch(s: ModelState): ModelState {
@@ -387,6 +433,7 @@ export function restoreFromCloud(s: ModelState): ModelState {
     workLook: t ? { ...t.look } : { theme: 0, blocks: 1, broken: false },
     dirty: false,
     remoteExtra: [],
+    merging: null,
     lastEvent: t ? "Proje GitHub'dan geri indirildi — hiçbir şey kaybolmadı." : 'GitHub boştu… push’lamadığın her şey gitti.',
   }
 }

@@ -20,6 +20,7 @@ import {
   pull,
   push,
   remoteMainTip,
+  resolveConflict,
   restoreFromCloud,
   switchBranch,
   teammatePush,
@@ -434,5 +435,38 @@ describe('model', () => {
   it('remoteMainTip reflects the last pushed main commit before any teammate push', () => {
     const s = push(seeded())
     expect(remoteMainTip(s)?.label).toBe('Özellik 1')
+  })
+
+  // --- divergence -> conflict -> resolve ---
+
+  it('merge conflicts when both sides changed the theme since the fork; resolve completes it', () => {
+    let s = createBranch(seeded(), 'a') // fork at Özellik 1 (theme 0)
+    s = commit(aiRedesign(s), 'A tasarım') // branch: theme 0 -> 2
+    s = switchBranch(s, 'main')
+    s = commit(aiRedesign(aiRedesign(s)), 'Main tasarım') // main: theme 0 -> 2 -> 4 (differs from branch's 2)
+    s = switchBranch(s, 'a')
+    const attempted = mergeBranch(s)
+    expect(attempted.merging).toEqual({ from: 'a', into: 'main' })
+    expect(attempted.commits.some((c) => c.isMerge)).toBe(false) // not merged yet
+    const done = resolveConflict(attempted, 'theirs')
+    expect(done.merging).toBeNull()
+    expect(headCommit(done)?.isMerge).toBe(true)
+    expect(done.branches).toEqual([])
+  })
+
+  it('non-overlapping divergence auto-merges without a conflict', () => {
+    let s = createBranch(seeded(), 'a')
+    s = commit(aiImprove(s), 'A içerik') // branch changes blocks, not theme
+    s = switchBranch(s, 'main')
+    s = commit(aiRedesign(s), 'Main tasarım') // main changes theme
+    s = switchBranch(s, 'a')
+    const merged = mergeBranch(s)
+    expect(merged.merging).toBeNull()
+    expect(headCommit(merged)?.isMerge).toBe(true)
+  })
+
+  it('resolveConflict is a no-op when nothing is merging', () => {
+    const s = seeded()
+    expect(resolveConflict(s, 'ours')).toBe(s)
   })
 })
