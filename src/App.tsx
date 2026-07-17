@@ -20,7 +20,7 @@ import {
   restoreFromCloud,
   switchBranch,
 } from './model'
-import { Scene } from './Scene'
+import { Scene, SCENE_H, SCENE_W } from './Scene'
 import { useZoom } from './useZoom'
 
 type Mode = 'guided' | 'sandbox'
@@ -53,7 +53,7 @@ export default function App() {
   const [showCmds, setShowCmds] = useState(false)
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark'))
   const primaryRef = useRef<HTMLButtonElement>(null)
-  const zoom = useZoom()
+  const zoom = useZoom(SCENE_W, SCENE_H)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -162,12 +162,12 @@ export default function App() {
       <main className="relative min-h-0 flex-1 px-4">
         <div
           ref={zoom.containerRef}
-          className="panel-card relative h-full w-full touch-none select-none overflow-hidden rounded-3xl"
+          className="panel-card relative h-full w-full touch-none select-none overflow-clip rounded-3xl"
           style={{ cursor: zoom.dragging ? 'grabbing' : 'grab' }}
           {...zoom.handlers}
         >
           <div
-            className={`zoom-wrapper h-full w-full ${zoom.animate ? '' : 'zoom-instant'}`}
+            className={`zoom-wrapper w-max ${zoom.animate ? '' : 'zoom-instant'}`}
             style={{ transform: `translate(${zoom.transform.tx}px, ${zoom.transform.ty}px) scale(${zoom.transform.scale})`, transformOrigin: '0 0' }}
           >
             <Scene state={model} labeled={mode === 'guided' && !!step.cheatSheet} />
@@ -179,13 +179,13 @@ export default function App() {
             onDoubleClick={(e) => e.stopPropagation()}
           >
             <div className="flex gap-1.5">
-              <button className={ZOOM_BTN} onClick={zoom.zoomOut} aria-label="Uzaklaştır">
+              <button type="button" className={ZOOM_BTN} onClick={zoom.zoomOut} aria-label="Uzaklaştır">
                 −
               </button>
-              <button className={ZOOM_BTN} onClick={zoom.zoomIn} aria-label="Yakınlaştır">
+              <button type="button" className={ZOOM_BTN} onClick={zoom.zoomIn} aria-label="Yakınlaştır">
                 +
               </button>
-              <button className={ZOOM_BTN} onClick={zoom.reset} aria-label="Görünümü sıfırla">
+              <button type="button" className={ZOOM_BTN} onClick={zoom.reset} aria-label="Görünümü sıfırla">
                 ⤢
               </button>
             </div>
