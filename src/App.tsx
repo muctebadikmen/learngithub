@@ -168,7 +168,7 @@ export default function App() {
               {sandboxButtons.map((b) => (
                 <button
                   key={b.label}
-                  className={`${BTN[b.kind ?? 'ghost']} w-full !rounded-xl !px-3 !py-2 text-left !text-sm`}
+                  className={`cmd-rail ${BTN[b.kind ?? 'ghost']} w-full !rounded-xl !px-3 !py-2 text-left !text-sm`}
                   data-cmd={b.cmd}
                   disabled={b.disabled}
                   onClick={() => setModel(b.apply(model))}
