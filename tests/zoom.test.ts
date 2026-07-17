@@ -45,12 +45,15 @@ describe('fitTransform', () => {
   })
 
   it('uses the width ratio when width is the binding dimension', () => {
-    // width/content ratio (600/1280 = 0.46875) is smaller than
-    // height/content ratio (900/720 = 1.25), so width binds.
-    const result = fitTransform(600, 900, 1280, 720)
-    const expectedScale = clampScale((600 / 1280) * 0.94)
+    // width/content ratio (700/1280 = 0.5469) is smaller than
+    // height/content ratio (900/720 = 1.25), so width binds. Raw scale
+    // (0.5469 * 0.94 ≈ 0.514) stays above MIN_SCALE, so this exercises the
+    // unclamped width-bound path, not the min clamp.
+    const result = fitTransform(700, 900, 1280, 720)
+    const expectedScale = clampScale((700 / 1280) * 0.94)
+    expect(expectedScale).toBeGreaterThan(0.5)
     expect(result.scale).toBeCloseTo(expectedScale, 5)
-    expect(result.tx).toBeCloseTo((600 - 1280 * expectedScale) / 2, 5)
+    expect(result.tx).toBeCloseTo((700 - 1280 * expectedScale) / 2, 5)
     expect(result.ty).toBeCloseTo((900 - 720 * expectedScale) / 2, 5)
   })
 
