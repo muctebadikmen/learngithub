@@ -1,5 +1,161 @@
 @import "tailwindcss";
 
+/* Theme tokens — dark is the default (owner's video), light is opt-in via
+   :root[data-theme="light"]. Dark values equal the pre-theming literals, so
+   dark mode stays pixel-equivalent. */
+:root {
+  color-scheme: dark;
+
+  --bg: #0b0f1a;
+  --panel: #0f1420;
+  --panel-2: #0d1117;
+  --panel-stroke: #27272a;
+
+  --ink: #e4e4e7;
+  --ink-soft: #d4d4d8;
+  --ink-muted: #a1a1aa;
+  --ink-faint: #71717a;
+  --ink-dim: #52525b;
+
+  --card-bg: #111827;
+  --card-stroke: #374151;
+
+  --node-ring: #0b0f1a;
+  --head-ring: #ffffff;
+
+  --pill-bg: #18181b;
+  --chip-stroke: #3f3f46;
+
+  --pin-bg: #27272a;
+  --pin-stroke: #52525b;
+
+  --danger: #ef4444;
+  --danger-hover: #f87171;
+  --danger-ink: #fef2f2;
+  --danger-bg: #7f1d1d;
+
+  --warn: #fbbf24;
+
+  --accent: #10b981;
+  --accent-hover: #34d399;
+  --accent-soft: #6ee7b7;
+  --accent-ink: #022c22;
+
+  --lane-0: #34d399;
+  --lane-1: #c4b5fd;
+  --lane-2: #fbbf24;
+  --lane-3: #38bdf8;
+
+  --pr-border: #8b5cf6;
+  --pr-open-bg: #78350f;
+  --pr-approved-bg: #14532d;
+  --pr-merged-bg: #4c1d95;
+
+  --sandbox-ink: #c4b5fd;
+  --scrim: #000000;
+
+  --tooltip-bg: #05070c;
+  --tooltip-ink: #6ee7b7;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #eef0f7;
+  --panel: #ffffff;
+  --panel-2: #f6f8fa;
+  --panel-stroke: #e3e5ef;
+
+  --ink: #171a24;
+  --ink-soft: #3f4454;
+  --ink-muted: #5b6070;
+  --ink-faint: #9aa0b0;
+  --ink-dim: #b7bccb;
+
+  --card-bg: #ffffff;
+  --card-stroke: #d9dbe6;
+
+  --node-ring: #ffffff;
+  --head-ring: #171a24;
+
+  --pill-bg: #ffffff;
+  --chip-stroke: #d9dbe6;
+
+  --pin-bg: #1f2430;
+  --pin-stroke: #3f4354;
+
+  --danger: #dc2626;
+  --danger-hover: #f87171;
+  --danger-ink: #fef2f2;
+  --danger-bg: #7f1d1d;
+
+  --warn: #b45309;
+
+  --accent: #10b981;
+  --accent-hover: #34d399;
+  --accent-soft: #059669;
+  --accent-ink: #022c22;
+
+  --lane-0: #059669;
+  --lane-1: #7c3aed;
+  --lane-2: #d97706;
+  --lane-3: #0284c7;
+
+  --pr-border: #8b5cf6;
+  --pr-open-bg: #78350f;
+  --pr-approved-bg: #14532d;
+  --pr-merged-bg: #4c1d95;
+
+  --sandbox-ink: #7c3aed;
+  --scrim: #000000;
+
+  --tooltip-bg: #05070c;
+  --tooltip-ink: #6ee7b7;
+}
+
+/* Shell panels get a soft shadow in light mode only (dark mode is
+   pixel-equivalent to before, i.e. no shadow). */
+.panel-card {
+  box-shadow: none;
+}
+:root[data-theme='light'] .panel-card {
+  box-shadow: 0 10px 32px rgb(15 23 42 / 0.07);
+}
+
+/* Consistent hover-lift + focus-visible ring for interactive controls. */
+.btn-interactive {
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    opacity 150ms ease;
+}
+.btn-interactive:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgb(15 23 42 / 0.18);
+}
+.btn-interactive:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 4px var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-interactive {
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease,
+      color 150ms ease,
+      opacity 150ms ease;
+  }
+  .btn-interactive:hover:not(:disabled) {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
 /* Scene node enter + move animations */
 .scene-node {
   transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1), opacity 600ms ease;
@@ -72,8 +228,8 @@
   white-space: nowrap;
   padding: 6px 10px;
   border-radius: 8px;
-  background: #05070c;
-  color: #6ee7b7;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-ink);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   font-weight: 400;
@@ -83,7 +239,7 @@
   content: '';
   bottom: calc(100% + 5px);
   border: 5px solid transparent;
-  border-top-color: #05070c;
+  border-top-color: var(--tooltip-bg);
 }
 [data-cmd]:hover::after,
 [data-cmd]:hover::before {
