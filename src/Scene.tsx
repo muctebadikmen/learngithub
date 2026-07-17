@@ -92,6 +92,7 @@ function Timeline({
   pushedOnly,
   showHead,
   fontSize,
+  remoteIds,
 }: {
   state: ModelState
   commits: Commit[]
@@ -99,6 +100,7 @@ function Timeline({
   pushedOnly: boolean
   showHead: boolean
   fontSize: number
+  remoteIds?: Set<string>
 }) {
   const abandoned = new Set(abandonedIds(state))
   const head = headCommit(state)
@@ -133,12 +135,19 @@ function Timeline({
         const cy = slot.laneY(c.laneIdx)
         const dim = !pushedOnly && abandoned.has(c.id)
         const fill = c.look.broken ? 'var(--danger)' : laneColor(c.laneIdx)
+        const isRemote = remoteIds?.has(c.id)
         return (
           <g key={`${suffix}-${c.id}`} className="scene-node" style={{ transform: `translate(${cx}px, ${cy}px)`, opacity: dim ? 0.3 : 1 }}>
             <circle r={slot.r} fill={fill} stroke="var(--node-ring)" strokeWidth={3} />
             {c.isMerge && (
               <text y={5} fontSize={slot.r} textAnchor="middle">
                 ⇄
+              </text>
+            )}
+            {isRemote && <circle r={slot.r + 5} fill="none" stroke={fill} strokeWidth={2} strokeDasharray="4 4" opacity={0.9} />}
+            {isRemote && (
+              <text x={slot.r * 0.9} y={-slot.r * 0.9} fontSize={fontSize + 4} textAnchor="middle">
+                👥
               </text>
             )}
             <text y={slot.r + fontSize + 6} fontSize={fontSize} fill={dim ? 'var(--ink-dim)' : 'var(--ink-muted)'} textAnchor="middle">
@@ -198,7 +207,7 @@ function GhostForks({ state, slot }: { state: ModelState; slot: Slot }) {
 // fork when empty) + the main pill. On the cloud side, only branches with at
 // least one pushed commit get a pill, and it sits at their first pushed commit.
 function BranchPills({ state, slot, cloud }: { state: ModelState; slot: Slot; cloud?: boolean }) {
-  const commits = cloud ? state.commits.filter((c) => state.pushedIds.includes(c.id)) : state.commits
+  const commits = cloud ? [...state.commits.filter((c) => state.pushedIds.includes(c.id)), ...state.remoteExtra] : state.commits
   if (!commits.some((c) => c.branch === 'main')) return null
 
   const pillAt = (x: number, laneIdx: number, label: string, active: boolean) => {
@@ -234,9 +243,33 @@ function BranchPills({ state, slot, cloud }: { state: ModelState; slot: Slot; cl
   )
 }
 
+// Red ⚡ badge over the current branch's tip while a merge conflict is
+// unresolved (state.merging set) — the sandbox rail locks to the three
+// resolve buttons until this clears.
+function ConflictMarker({ state, slot }: { state: ModelState; slot: Slot }) {
+  if (!state.merging) return null
+  const head = headCommit(state)
+  if (!head) return null
+  return (
+    <g className="scene-node" style={{ transform: `translate(${slot.px(head.x)}px, ${slot.laneY(head.laneIdx)}px)` }}>
+      <g transform={`translate(0, ${-(slot.r + 70)})`}>
+        <rect x={-82} y={-16} width={164} height={32} rx={16} fill="var(--danger)" stroke="var(--danger-hover)" strokeWidth={2} />
+        <text y={6} fontSize={15} fontWeight={800} fill="#fff" textAnchor="middle">
+          ⚡ çakışma — çöz
+        </text>
+      </g>
+    </g>
+  )
+}
+
 function GitHubSide({ state, labeled }: { state: ModelState; labeled: boolean }) {
   const pushed = state.commits.filter((c) => state.pushedIds.includes(c.id))
-  const slot = timelineSlots(pushed, 852, 1206, 12, cloudLaneY)
+  // GitHub can be ahead of local: a teammate's pushed-but-not-pulled work
+  // (state.remoteExtra) shows up here even though the computer panel never
+  // draws it — that asymmetry is the point.
+  const cloudCommits = [...pushed, ...state.remoteExtra]
+  const remoteIds = new Set(state.remoteExtra.map((c) => c.id))
+  const slot = timelineSlots(cloudCommits, 852, 1206, 12, cloudLaneY)
   return (
     <g>
       <text x={824} y={72} fontSize={22} fontWeight={800} fill="var(--ink)">
@@ -245,7 +278,7 @@ function GitHubSide({ state, labeled }: { state: ModelState; labeled: boolean })
       <text x={824} y={98} fontSize={14} fill="var(--ink-faint)">
         buluttaki yedeğin — herkesle paylaşılabilir
       </text>
-      {pushed.length === 0 && !state.pr ? (
+      {cloudCommits.length === 0 && !state.pr ? (
         <g opacity={0.5}>
           <rect x={880} y={280} width={300} height={140} rx={20} fill="none" stroke="var(--chip-stroke)" strokeWidth={2} strokeDasharray="8 8" />
           <text x={1030} y={340} fontSize={16} fill="var(--ink-faint)" textAnchor="middle">
@@ -263,10 +296,10 @@ function GitHubSide({ state, labeled }: { state: ModelState; labeled: boolean })
               📦 sen / <tspan fontWeight={800}>uygulamam</tspan>
             </text>
             <text x={1218} y={153} fontSize={14} fill="var(--ink-faint)" textAnchor="end">
-              {pushed.length} commit
+              {cloudCommits.length} commit
             </text>
           </g>
-          <Timeline state={state} commits={pushed} slot={slot} pushedOnly showHead={false} fontSize={11} />
+          <Timeline state={state} commits={cloudCommits} slot={slot} pushedOnly showHead={false} fontSize={11} remoteIds={remoteIds} />
           <BranchPills state={state} slot={slot} cloud />
         </g>
       )}
@@ -339,6 +372,7 @@ export function Scene({ state, labeled = false }: { state: ModelState; labeled?:
       <Timeline state={state} commits={state.commits} slot={slot} pushedOnly={false} showHead fontSize={13} />
       <GhostForks state={state} slot={slot} />
       <BranchPills state={state} slot={slot} />
+      <ConflictMarker state={state} slot={slot} />
       <GitHubSide state={state} labeled={labeled} />
       {labeled && state.commits.length > 0 && (
         <g fontSize={15} fill="var(--warn)">
