@@ -16,6 +16,7 @@ import {
   laptopDie,
   mergeBranch,
   openPR,
+  parentLaneIdx,
   push,
   restoreFromCloud,
   switchBranch,
@@ -96,14 +97,17 @@ describe('model', () => {
 
   // --- branching ---
 
-  it('createBranch guards: needs a repo, must be on main, room for 3, no name clash', () => {
+  it('createBranch guards: needs a repo, room for 4, no name clash, reserved "main"', () => {
     const s = seeded()
     const noRepo = initialModel()
     expect(createBranch(noRepo)).toBe(noRepo) // no repo
     const a = createBranch(s) // default name
     expect(a.currentBranch).toBe('deneme')
-    expect(a.branches).toEqual([{ name: 'deneme', forkId: s.headId, laneIdx: 1 }])
-    expect(createBranch(a, 'tasarim')).toBe(a) // not on main anymore
+    expect(a.branches).toEqual([{ name: 'deneme', forkId: s.headId, laneIdx: 1, parent: 'main' }])
+    const nested = createBranch(a, 'tasarim') // branching from a non-main branch is the whole point
+    expect(nested.currentBranch).toBe('tasarim')
+    expect(nested.branches).toHaveLength(2)
+    expect(nested.branches.find((b) => b.name === 'tasarim')?.parent).toBe('deneme')
     expect(createBranch(s, 'deneme')).not.toBe(s) // fine, no clash yet
     expect(createBranch(s, 'main')).toBe(s) // reserved name
   })
@@ -117,6 +121,25 @@ describe('model', () => {
     expect(merged.currentBranch).toBe('main')
     expect(headCommit(merged)?.isMerge).toBe(true)
     expect(merged.commits.some((c) => c.branch === 'deneme')).toBe(true)
+  })
+
+  it('a branch can be opened from another branch and records its parent', () => {
+    let s = createBranch(seeded(), 'a') // a: parent main
+    s = commit(aiImprove(s), 'A1')
+    const a1Id = headCommit(s)!.id
+    s = createBranch(s, 'a2') // a2: parent 'a', forked at A1
+    expect(s.currentBranch).toBe('a2')
+    const a2 = s.branches.find((b) => b.name === 'a2')!
+    expect(a2.parent).toBe('a')
+    expect(a2.forkId).toBe(a1Id)
+  })
+
+  it("parentLaneIdx resolves a branch's parent lane, 0 for a branch forked off main", () => {
+    let s = createBranch(seeded(), 'a')
+    s = commit(aiImprove(s), 'A1')
+    s = createBranch(s, 'a2')
+    expect(parentLaneIdx(s, 'a')).toBe(0)
+    expect(parentLaneIdx(s, 'a2')).toBe(1)
   })
 
   it('deleteBranch removes only that branch commits and returns to main tip', () => {
@@ -175,7 +198,7 @@ describe('model', () => {
     expect(onA.workLook.theme).not.toBe(onB.workLook.theme)
   })
 
-  it('lane assignment goes 1, 2, 3 and reuses the smallest unused number after a delete', () => {
+  it('lane assignment goes 1, 2, 3, 4 and reuses the smallest unused number after a delete', () => {
     let s = seeded()
     s = createBranch(s, 'a')
     s = switchBranch(s, 'main')
@@ -183,12 +206,14 @@ describe('model', () => {
     s = switchBranch(s, 'main')
     s = createBranch(s, 'c')
     expect(s.branches.map((b) => b.laneIdx)).toEqual([1, 2, 3])
-    expect(createBranch(s, 'd')).toBe(s) // no room left
+    s = createBranch(s, 'd') // 4th branch fits — MAX_BRANCHES is 4
+    expect(s.branches.find((b) => b.name === 'd')?.laneIdx).toBe(4)
+    expect(createBranch(s, 'e')).toBe(s) // no room left
 
     s = switchBranch(s, 'b')
     s = deleteBranch(s) // frees lane 2
-    s = createBranch(s, 'd')
-    expect(s.branches.find((b) => b.name === 'd')?.laneIdx).toBe(2)
+    s = createBranch(s, 'e')
+    expect(s.branches.find((b) => b.name === 'e')?.laneIdx).toBe(2)
   })
 
   it('push is per-branch ancestry: pushing branch A does not push branch B', () => {

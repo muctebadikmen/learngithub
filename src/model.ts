@@ -7,7 +7,7 @@ export type AppLook = {
   broken: boolean
 }
 
-export type Branch = { name: string; forkId: string; laneIdx: number } // laneIdx ∈ 1..3
+export type Branch = { name: string; forkId: string; laneIdx: number; parent: string } // laneIdx ∈ 1..4; parent = 'main' or the branch it forked from
 
 export type Commit = {
   id: string
@@ -40,6 +40,7 @@ export type ModelState = {
 
 export const THEME_COUNT = 5
 export const MAX_BLOCKS = 5
+export const MAX_BRANCHES = 4
 
 export const DEFAULT_BRANCH_NAMES = ['deneme', 'tasarim', 'ozellik']
 
@@ -186,21 +187,29 @@ export function goBack(s: ModelState): ModelState {
 }
 
 export function createBranch(s: ModelState, name?: string): ModelState {
-  if (!s.hasRepo || s.currentBranch !== 'main' || s.branches.length >= 3 || !s.headId) return s
+  if (!s.hasRepo || s.branches.length >= MAX_BRANCHES || !s.headId) return s
   const activeNames = new Set(s.branches.map((b) => b.name))
   const resolvedName = name ?? DEFAULT_BRANCH_NAMES.find((n) => !activeNames.has(n))
   if (!resolvedName || resolvedName === 'main' || activeNames.has(resolvedName)) return s
   const usedLanes = new Set(s.branches.map((b) => b.laneIdx))
-  const laneIdx = [1, 2, 3].find((i) => !usedLanes.has(i))
+  const laneIdx = [1, 2, 3, 4].find((i) => !usedLanes.has(i))
   if (!laneIdx) return s
-  const branch: Branch = { name: resolvedName, forkId: s.headId, laneIdx }
+  const branch: Branch = { name: resolvedName, forkId: s.headId, laneIdx, parent: s.currentBranch }
   return {
     ...s,
     branches: [...s.branches, branch],
     currentBranch: resolvedName,
     pr: s.pr?.status === 'merged' ? null : s.pr, // a finished PR belongs to the previous branch; clear the card
-    lastEvent: `“${resolvedName}” branch'i açıldı — main artık güvende.`,
+    lastEvent: `“${resolvedName}” branch'i açıldı — “${s.currentBranch}” güvende.`,
   }
+}
+
+// Lane of `branchName`'s parent — 0 for main, else the parent branch's own
+// lane. Used to draw a nested fork's line off the parent's lane, not main's.
+export function parentLaneIdx(s: ModelState, branchName: string): number {
+  const b = s.branches.find((x) => x.name === branchName)
+  if (!b || b.parent === 'main') return 0
+  return s.branches.find((x) => x.name === b.parent)?.laneIdx ?? 0
 }
 
 export function switchBranch(s: ModelState, name: string): ModelState {
@@ -276,8 +285,9 @@ function reachableFrom(s: ModelState, startId: string | null): Set<string> {
 // is its dependency anchor — tip() falls back to it when the branch has no
 // commits of its own yet, so dropping it as "abandoned" would orphan the
 // branch forever (it could never be switched to, merged, or deleted).
-// Branches only ever fork off main, so this only ever protects main commits;
-// a branch's own forward commits are never in another branch's abandoned
+// A branch can fork off any branch now, not just main — this protects
+// whichever commit each active branch depends on, wherever it lives.
+// A branch's own forward commits are never in another branch's abandoned
 // list and are free to be dropped by its own goBack+commit (unaffected here).
 function protectedForkAncestors(s: ModelState): Set<string> {
   const ids = new Set<string>()
