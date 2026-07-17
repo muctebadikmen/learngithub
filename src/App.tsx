@@ -14,6 +14,7 @@ import {
   goBack,
   initialModel,
   laptopDie,
+  MAX_BRANCHES,
   mergeBranch,
   openPR,
   push,
@@ -305,9 +306,9 @@ function sandboxActions(s: ModelState): SandboxButton[] {
   const activeNames = new Set(s.branches.map((b) => b.name))
   const nextBranchName = DEFAULT_BRANCH_NAMES.find((n) => !activeNames.has(n))
   buttons.push({
-    label: '🌿 Branch aç',
+    label: s.currentBranch === 'main' ? '🌿 Branch aç' : "🌿 Branch'ten branch aç",
     apply: (m) => createBranch(m),
-    disabled: s.currentBranch !== 'main' || s.branches.length >= 3,
+    disabled: s.branches.length >= MAX_BRANCHES,
     cmd: nextBranchName ? `git switch -c ${nextBranchName}` : undefined,
   })
 
@@ -321,14 +322,16 @@ function sandboxActions(s: ModelState): SandboxButton[] {
     const own = branchCommits(s, name)
     const prOpenForThis = s.pr?.status === 'open' && s.pr.from === name
     const allPushed = own.length > 0 && own.every((c) => s.pushedIds.includes(c.id))
+    const parent = s.branches.find((b) => b.name === name)?.parent ?? 'main'
+    const hasChild = s.branches.some((b) => b.parent === name)
     buttons.push({
-      label: `✅ Merge et (${name} → main)`,
+      label: `✅ Merge et (${name} → ${parent})`,
       apply: mergeBranch,
-      disabled: !own.length || prOpenForThis,
+      disabled: !own.length || prOpenForThis || hasChild,
       kind: 'primary',
-      cmd: `git switch main && git merge ${name}`,
+      cmd: `git switch ${parent} && git merge ${name}`,
     })
-    buttons.push({ label: `🗑️ Sil: ${name}`, apply: deleteBranch, kind: 'danger', cmd: `git switch main && git branch -D ${name}` })
+    buttons.push({ label: `🗑️ Sil: ${name}`, apply: deleteBranch, kind: 'danger', disabled: hasChild, cmd: `git switch ${parent} && git branch -D ${name}` })
     if (!s.pr || s.pr.status === 'merged') {
       buttons.push({ label: '⇄ PR aç', apply: openPR, disabled: !allPushed, cmd: 'gh pr create' })
     }
