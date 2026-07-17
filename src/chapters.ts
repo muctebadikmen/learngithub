@@ -21,6 +21,7 @@ export type StepButton = {
   kind?: 'primary' | 'danger' | 'ghost'
   apply?: (s: ModelState) => ModelState
   next?: string // step id; default: the following step
+  cmd?: string // real git command this action represents; omit when there isn't one
 }
 
 export type Step = {
@@ -53,7 +54,7 @@ export const STEPS: Step[] = [
     id: 'repo-intro',
     chapter: 0,
     text: 'Bu, AI ile yaptığın uygulama. Şu an hiçbir güvencesi yok: geçmişi yok, yedeği yok. Önce ona bir repo lazım.',
-    buttons: [{ label: 'Repo oluştur', apply: createRepo }],
+    buttons: [{ label: 'Repo oluştur', apply: createRepo, cmd: 'git init' }],
   },
   {
     id: 'repo-done',
@@ -68,14 +69,14 @@ export const STEPS: Step[] = [
     chapter: 1,
     text: 'AI’ya yeni bir özellik yaptırdın. Bu hâli kaybetmemek için bir kayıt noktası bırak.',
     enter: aiImprove,
-    buttons: [{ label: 'Commit at (kaydet)', apply: (s) => commit(s, 'Özellik 1') }],
+    buttons: [{ label: 'Commit at (kaydet)', apply: (s) => commit(s, 'Özellik 1'), cmd: 'git add . && git commit -m "mesaj"' }],
   },
   {
     id: 'commit-2',
     chapter: 1,
     text: 'Bir özellik daha geldi. Yine kaydet. Alışkanlık hâline getir: her çalışan hâl, bir commit.',
     enter: aiImprove,
-    buttons: [{ label: 'Commit at (kaydet)', apply: (s) => commit(s, 'Özellik 2') }],
+    buttons: [{ label: 'Commit at (kaydet)', apply: (s) => commit(s, 'Özellik 2'), cmd: 'git add . && git commit -m "mesaj"' }],
   },
   {
     id: 'commit-done',
@@ -95,7 +96,7 @@ export const STEPS: Step[] = [
     id: 'undo-discard',
     chapter: 2,
     text: 'Panik yok: bozuk hâli henüz kaydetmedin. Son kayıt noktan tertemiz duruyor. Geri dön, yeter.',
-    buttons: [{ label: 'Geri dön', apply: goBack }],
+    buttons: [{ label: 'Geri dön', apply: goBack, cmd: 'git restore .' }],
   },
   {
     id: 'undo-committed',
@@ -107,7 +108,7 @@ export const STEPS: Step[] = [
     id: 'undo-goback',
     chapter: 2,
     text: 'Yine panik yok. Commit’ler zaman makinesi: bir önceki kayıt noktasına dön.',
-    buttons: [{ label: 'Önceki commit’e dön', apply: goBack }],
+    buttons: [{ label: 'Önceki commit’e dön', apply: goBack, cmd: 'git reset --hard HEAD~1' }],
   },
   {
     id: 'undo-done',
@@ -121,7 +122,7 @@ export const STEPS: Step[] = [
     id: 'push-intro',
     chapter: 3,
     text: 'Her şey şu an sadece senin bilgisayarında. Bilgisayara bir şey olursa, hepsi gider.',
-    buttons: [{ label: 'Push’la (GitHub’a yedekle)', apply: push }],
+    buttons: [{ label: 'Push’la (GitHub’a yedekle)', apply: push, cmd: 'git push -u origin main' }],
   },
   {
     id: 'push-die',
@@ -133,7 +134,7 @@ export const STEPS: Step[] = [
     id: 'push-restore',
     chapter: 3,
     text: 'Yerel kopya gitti. Ama proje ölmedi: GitHub’daki kopyası duruyor.',
-    buttons: [{ label: 'GitHub’dan geri indir (clone)', apply: restoreFromCloud }],
+    buttons: [{ label: 'GitHub’dan geri indir (clone)', apply: restoreFromCloud, cmd: 'git clone {repo-adresi}' }],
   },
   {
     id: 'push-done',
@@ -147,22 +148,22 @@ export const STEPS: Step[] = [
     id: 'branch-create',
     chapter: 4,
     text: 'Riskli bir fikir var: tasarımı komple değiştirmek. Çalışan uygulamayı bozmadan denemek için bir branch aç.',
-    buttons: [{ label: 'Branch aç (deneme hattı)', apply: (s) => createBranch(s) }],
+    buttons: [{ label: 'Branch aç (deneme hattı)', apply: (s) => createBranch(s), cmd: 'git switch -c deneme' }],
   },
   {
     id: 'branch-work',
     chapter: 4,
     text: 'AI artık “deneme” hattında çalışıyor. Main’e hiç dokunmuyor.',
     enter: aiRedesign,
-    buttons: [{ label: 'Commit at (kaydet)', apply: (s) => commit(s, 'Yeni tasarım') }],
+    buttons: [{ label: 'Commit at (kaydet)', apply: (s) => commit(s, 'Yeni tasarım'), cmd: 'git add . && git commit -m "mesaj"' }],
   },
   {
     id: 'branch-choice',
     chapter: 4,
     text: 'Karar anı. Yeni tasarım…',
     buttons: [
-      { label: 'Beğendim → merge et', apply: mergeBranch, next: 'branch-merged' },
-      { label: 'Olmadı → branch’i sil', kind: 'danger', apply: deleteBranch, next: 'branch-deleted' },
+      { label: 'Beğendim → merge et', apply: mergeBranch, next: 'branch-merged', cmd: 'git switch main && git merge deneme' },
+      { label: 'Olmadı → branch’i sil', kind: 'danger', apply: deleteBranch, next: 'branch-deleted', cmd: 'git switch main && git branch -D deneme' },
     ],
   },
   {
@@ -187,6 +188,7 @@ export const STEPS: Step[] = [
       {
         label: 'Yeni branch’te bir özellik hazırla',
         apply: pipe((s) => createBranch(s, 'ozellik'), aiImprove, (s) => commit(s, 'Yeni özellik'), push),
+        cmd: 'git switch -c ozellik',
       },
     ],
   },
@@ -194,19 +196,19 @@ export const STEPS: Step[] = [
     id: 'pr-open',
     chapter: 5,
     text: 'Branch GitHub’da. Şimdi Pull Request’i aç.',
-    buttons: [{ label: 'Pull Request aç', apply: openPR }],
+    buttons: [{ label: 'Pull Request aç', apply: openPR, cmd: 'gh pr create' }],
   },
   {
     id: 'pr-approve',
     chapter: 5,
     text: 'Ekip arkadaşın (ya da sen) değişikliklere bakar ve onaylar.',
-    buttons: [{ label: 'Onayla ✓', apply: approvePR }],
+    buttons: [{ label: 'Onayla ✓', apply: approvePR, cmd: 'GitHub arayüzünde: Review → Approve' }],
   },
   {
     id: 'pr-merge',
     chapter: 5,
     text: 'Onay geldi. Merge et — özellik main’e katılsın.',
-    buttons: [{ label: 'Merge et', apply: pipe(mergeBranch, push) }],
+    buttons: [{ label: 'Merge et', apply: pipe(mergeBranch, push), cmd: 'git switch main && git merge ozellik && git push' }],
   },
   {
     id: 'pr-done',
