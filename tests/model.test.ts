@@ -173,6 +173,18 @@ describe('model', () => {
     expect(dropped.workLook.broken).toBe(false)
   })
 
+  it('deleteBranch on a nested branch returns to its parent branch, not main', () => {
+    let s = createBranch(seeded(), 'a')
+    s = commit(aiImprove(s), 'A1')
+    s = createBranch(s, 'a2')
+    s = commit(aiImprove(s), 'A2')
+    const dropped = deleteBranch(s) // delete a2 (parent a)
+    expect(dropped.currentBranch).toBe('a')
+    expect(dropped.branches.map((b) => b.name)).toEqual(['a'])
+    expect(dropped.commits.some((c) => c.label === 'A2')).toBe(false)
+    expect(headCommit(dropped)?.label).toBe('A1')
+  })
+
   it('deleteBranch only removes the current branch, leaving other active branches intact', () => {
     let s = createBranch(seeded(), 'a')
     s = commit(aiImprove(s), 'A1')
@@ -217,6 +229,17 @@ describe('model', () => {
     const onB = switchBranch(s, 'b')
     expect(onA.workLook.blocks).not.toBe(onB.workLook.blocks)
     expect(onA.workLook.theme).not.toBe(onB.workLook.theme)
+  })
+
+  it('four unnamed branches can be opened (one per default name), the fifth is refused', () => {
+    let s = seeded()
+    for (let i = 0; i < 4; i++) {
+      s = createBranch(s)
+      s = switchBranch(s, 'main')
+    }
+    expect(s.branches).toHaveLength(4)
+    expect(s.branches.map((b) => b.name)).toEqual(['deneme', 'tasarim', 'ozellik', 'yenilik'])
+    expect(createBranch(s)).toBe(s) // no free lane/name
   })
 
   it('lane assignment goes 1, 2, 3, 4 and reuses the smallest unused number after a delete', () => {

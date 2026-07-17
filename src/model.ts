@@ -42,7 +42,7 @@ export const THEME_COUNT = 5
 export const MAX_BLOCKS = 5
 export const MAX_BRANCHES = 4
 
-export const DEFAULT_BRANCH_NAMES = ['deneme', 'tasarim', 'ozellik']
+export const DEFAULT_BRANCH_NAMES = ['deneme', 'tasarim', 'ozellik', 'yenilik']
 
 export function initialModel(): ModelState {
   return {
@@ -243,7 +243,7 @@ export function mergeBranch(s: ModelState): ModelState {
   const parent = branch.parent
   const branchTip = own[own.length - 1]
   const parentTip = tip(s, parent)
-  const parentLane = parent === 'main' ? 0 : (s.branches.find((b) => b.name === parent)?.laneIdx ?? 0)
+  const parentLane = parentLaneIdx(s, name)
   const withHead = { ...s, currentBranch: parent, headId: parentTip?.id ?? null }
   const merged = addCommit(withHead, `Merge: ${name}`, parent, parentLane, parentTip?.id ?? null, branchTip.look, true, branchTip.id)
   return {
@@ -251,27 +251,29 @@ export function mergeBranch(s: ModelState): ModelState {
     branches: s.branches.filter((b) => b.name !== name),
     currentBranch: parent,
     pr: s.pr?.from === name ? { ...s.pr, status: 'merged' } : s.pr,
-    lastEvent: `“${name}” → “${parent}” birleşti.`,
+    lastEvent: `“${name}”, “${parent}” ile birleşti.`,
   }
 }
 
 export function deleteBranch(s: ModelState): ModelState {
   if (s.currentBranch === 'main') return s
+  if (hasActiveChild(s, s.currentBranch)) return s
   const name = s.currentBranch
-  if (hasActiveChild(s, name)) return s
+  const branch = s.branches.find((b) => b.name === name)!
+  const parent = branch.parent
   const doomed = new Set(branchCommits(s, name).map((c) => c.id))
-  const mainTip = tip(s, 'main')
+  const parentTip = tip(s, parent)
   return {
     ...s,
     commits: s.commits.filter((c) => !doomed.has(c.id)),
     pushedIds: s.pushedIds.filter((id) => !doomed.has(id)),
     branches: s.branches.filter((b) => b.name !== name),
-    currentBranch: 'main',
-    headId: mainTip?.id ?? null,
-    workLook: mainTip ? { ...mainTip.look } : s.workLook,
+    currentBranch: parent,
+    headId: parentTip?.id ?? null,
+    workLook: parentTip ? { ...parentTip.look } : s.workLook,
     dirty: false,
     pr: s.pr?.from === name ? null : s.pr,
-    lastEvent: `“${name}” branch'i silindi — main'e hiçbir şey olmadı.`,
+    lastEvent: `“${name}” silindi — “${parent}” olduğu gibi duruyor.`,
   }
 }
 
