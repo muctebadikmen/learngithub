@@ -4,7 +4,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 // Scene zoom & pan: ctrl/cmd+scroll zooms toward the cursor, drag pans,
 // the overlay buttons zoom around the container center, dblclick/⤢ resets.
 
-const MIN_SCALE = 0.5
+const MIN_SCALE = 0.12
 const MAX_SCALE = 6
 const BUTTON_ZOOM_STEP = 1.25
 const WHEEL_SENSITIVITY = 0.0022
@@ -75,9 +75,13 @@ export function useZoom(contentW: number, contentH: number) {
     fitToContainer()
   }, [fitToContainer])
 
-  // Initial framing: fit before paint so there's no visible identity flash.
+  // Initial framing + re-frame when the content grows — but only while the
+  // user hasn't manually panned/zoomed since the last fit (adjustedRef false).
+  // So history growth keeps everything in view automatically, yet never yanks
+  // a view the user has adjusted (⤢ re-fits on demand). fitToContainer's deps
+  // include contentW, so this re-runs whenever the scene widens.
   useLayoutEffect(() => {
-    fitToContainer()
+    if (!adjustedRef.current) fitToContainer()
   }, [fitToContainer])
 
   // Re-fit on container resize, but only while the user hasn't manually

@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { clampScale, fitTransform, zoomToward } from '../src/useZoom'
 
 describe('clampScale', () => {
-  it('clamps below MIN to 0.5', () => {
-    expect(clampScale(0)).toBe(0.5)
-    expect(clampScale(0.1)).toBe(0.5)
+  it('clamps below MIN to 0.12', () => {
+    expect(clampScale(0)).toBe(0.12)
+    expect(clampScale(0.05)).toBe(0.12)
   })
 
   it('clamps above MAX to 6', () => {
@@ -47,11 +47,11 @@ describe('fitTransform', () => {
   it('uses the width ratio when width is the binding dimension', () => {
     // width/content ratio (700/1280 = 0.5469) is smaller than
     // height/content ratio (900/720 = 1.25), so width binds. Raw scale
-    // (0.5469 * 0.94 ≈ 0.514) stays above MIN_SCALE, so this exercises the
-    // unclamped width-bound path, not the min clamp.
+    // (0.5469 * 0.94 ≈ 0.514) stays above MIN_SCALE (0.12), so this exercises
+    // the unclamped width-bound path, not the min clamp.
     const result = fitTransform(700, 900, 1280, 720)
     const expectedScale = clampScale((700 / 1280) * 0.94)
-    expect(expectedScale).toBeGreaterThan(0.5)
+    expect(expectedScale).toBeGreaterThan(0.12)
     expect(result.scale).toBeCloseTo(expectedScale, 5)
     expect(result.tx).toBeCloseTo((700 - 1280 * expectedScale) / 2, 5)
     expect(result.ty).toBeCloseTo((900 - 720 * expectedScale) / 2, 5)
@@ -59,6 +59,16 @@ describe('fitTransform', () => {
 
   it('clamps to MIN_SCALE for a tiny container', () => {
     const result = fitTransform(50, 50, 1280, 720)
-    expect(result.scale).toBe(0.5)
+    expect(result.scale).toBe(0.12)
+  })
+
+  it('fits a very wide scene below the old 0.5 floor (zoom-out now shows everything)', () => {
+    // 2600-wide scene in a ~900px container needs ~0.33 — impossible under the
+    // old MIN_SCALE 0.5, possible now.
+    const result = fitTransform(900, 700, 2600, 720)
+    const expectedScale = clampScale(Math.min(900 / 2600, 700 / 720) * 0.94)
+    expect(result.scale).toBeCloseTo(expectedScale, 10)
+    expect(result.scale).toBeLessThan(0.5)
+    expect(result.scale).toBeGreaterThan(0.12)
   })
 })
