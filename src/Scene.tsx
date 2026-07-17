@@ -7,13 +7,13 @@ import { abandonedIds, branchCommits, headCommit, parentLaneIdx } from './model'
 const THEMES = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4']
 const BLOCK_WIDTHS = [204, 156, 224, 132, 180]
 
-// index 0 = main, 1..3 = the three possible side-branch lanes
-const LANE_COLORS = ['var(--lane-0)', 'var(--lane-1)', 'var(--lane-2)', 'var(--lane-3)']
+// index 0 = main, 1..4 = the four possible side-branch lanes
+const LANE_COLORS = ['var(--lane-0)', 'var(--lane-1)', 'var(--lane-2)', 'var(--lane-3)', 'var(--lane-4)']
 const laneColor = (laneIdx: number) => LANE_COLORS[laneIdx] ?? LANE_COLORS[0]
 
-// main 572, lane1 464, lane2 400, lane3 336
+// main 572, lane1 464, lane2 420, lane3 376, lane4 332
 function laneY(laneIdx: number): number {
-  return 572 - 108 * Math.min(laneIdx, 1) - 64 * Math.max(laneIdx - 1, 0)
+  return 572 - 108 * Math.min(laneIdx, 1) - 44 * Math.max(laneIdx - 1, 0)
 }
 
 // same shape, compressed: main 592, lane1 528, lane2 464, lane3 400

@@ -26,7 +26,7 @@ export type PR = { status: 'open' | 'approved' | 'merged'; from: string }
 export type ModelState = {
   hasRepo: boolean
   commits: Commit[]
-  branches: Branch[] // active side branches (max 3)
+  branches: Branch[] // active side branches (max 4)
   currentBranch: string // 'main' or an active branch name
   headId: string | null
   workLook: AppLook // how the app looks right now (possibly uncommitted)
@@ -406,6 +406,7 @@ export function pull(s: ModelState): ModelState {
     pushedIds: [...new Set([...s.pushedIds, ...brought.map((c) => c.id)])],
     headId: onMain ? newTip.id : s.headId,
     workLook: onMain ? { ...newTip.look } : s.workLook,
+    dirty: onMain ? false : s.dirty,
     lastEvent: `☁️ Pull tamam — arkadaşının ${brought.length} commit’i artık sende.`,
   }
 }

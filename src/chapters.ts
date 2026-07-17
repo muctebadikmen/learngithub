@@ -342,6 +342,9 @@ export const CHEAT_SHEET = [
   ['“Yeni bir branch aç”', 'güvenli deneme alanı'],
   ['“Branch’i main’e merge’le”', 'denemeyi kalıcı yap'],
   ['“Pull request aç”', 'değişikliği incelemeye sun'],
+  ['“Branch’ten branch aç”', 'denemenin içinde deneme'],
+  ['“Pull’la / çek”', 'ekibin son işini kendine al'],
+  ['“Çakışmayı çöz”', 'hangi hâli tutacağına karar ver'],
 ] as const
 
 export function stepIndexById(id: string): number {

@@ -465,6 +465,25 @@ describe('model', () => {
     expect(headCommit(merged)?.isMerge).toBe(true)
   })
 
+  it('a divergent conflict on a nested branch resolves into its parent branch, not main', () => {
+    let s = createBranch(seeded(), 'a')          // a off main
+    s = commit(aiImprove(s), 'A1')
+    s = createBranch(s, 'a2')                     // a2 off a (fork at A1, theme 0)
+    s = commit(aiRedesign(s), 'A2 tasarım')       // a2 theme -> 2
+    s = switchBranch(s, 'a')
+    s = commit(aiRedesign(s), 'A tasarım 1')       // a theme -> 2
+    s = commit(aiRedesign(s), 'A tasarım 2')       // a theme -> 4 (diverges from a2)
+    s = switchBranch(s, 'a2')
+    const attempted = mergeBranch(s)              // a2 -> a : both changed theme -> conflict
+    expect(attempted.merging).toEqual({ from: 'a2', into: 'a' })
+    expect(attempted.commits.some((c) => c.isMerge)).toBe(false)
+    const done = resolveConflict(attempted, 'ours')
+    expect(done.merging).toBeNull()
+    expect(done.currentBranch).toBe('a')          // resolved into the parent branch, not main
+    expect(headCommit(done)?.isMerge).toBe(true)
+    expect(done.branches.map((b) => b.name)).toEqual(['a'])
+  })
+
   it('resolveConflict is a no-op when nothing is merging', () => {
     const s = seeded()
     expect(resolveConflict(s, 'ours')).toBe(s)
