@@ -292,11 +292,11 @@ function GitHubSide({ state, labeled, panelW }: { state: ModelState; labeled: bo
       ) : (
         <g>
           <g className="scene-node">
-            <rect x={824} y={120} width={panelW - 48} height={54} rx={12} fill="var(--pill-bg)" stroke="var(--chip-stroke)" />
+            <rect x={824} y={120} width={panelW - 40} height={54} rx={12} fill="var(--pill-bg)" stroke="var(--chip-stroke)" />
             <text x={846} y={153} fontSize={16} fill="var(--ink-soft)">
               📦 sen / <tspan fontWeight={800}>uygulamam</tspan>
             </text>
-            <text x={800 + panelW - 22} y={153} fontSize={14} fill="var(--ink-faint)" textAnchor="end">
+            <text x={800 + panelW - 38} y={153} fontSize={14} fill="var(--ink-faint)" textAnchor="end">
               {cloudCommits.length} commit
             </text>
           </g>
