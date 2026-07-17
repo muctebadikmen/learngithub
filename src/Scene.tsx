@@ -1,5 +1,5 @@
 import type { Branch, Commit, ModelState } from './model'
-import { abandonedIds, branchCommits, headCommit } from './model'
+import { abandonedIds, branchCommits, headCommit, parentLaneIdx } from './model'
 
 // One persistent scene: computer (left) + GitHub (right), drawn from ModelState.
 // Node positions/opacity animate via CSS transitions in index.css (.scene-node).
@@ -176,7 +176,16 @@ function GhostForks({ state, slot }: { state: ModelState; slot: Slot }) {
         const x2 = x1 + 56
         return (
           <g key={b.name} className="scene-node">
-            <line x1={x1} y1={slot.laneY(0)} x2={x2} y2={slot.laneY(b.laneIdx)} stroke={color} strokeWidth={3} strokeDasharray="7 7" opacity={0.7} />
+            <line
+              x1={x1}
+              y1={slot.laneY(parentLaneIdx(state, b.name))}
+              x2={x2}
+              y2={slot.laneY(b.laneIdx)}
+              stroke={color}
+              strokeWidth={3}
+              strokeDasharray="7 7"
+              opacity={0.7}
+            />
             <circle cx={x2} cy={slot.laneY(b.laneIdx)} r={slot.r - 4} fill="none" stroke={color} strokeWidth={2.5} strokeDasharray="6 6" />
           </g>
         )
