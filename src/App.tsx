@@ -4,6 +4,7 @@ import type { ModelState } from './model'
 import {
   aiBreak,
   aiImprove,
+  aiRedesign,
   approvePR,
   branchCommits,
   commit,
@@ -303,6 +304,7 @@ function sandboxActions(s: ModelState): SandboxButton[] {
   }
   const buttons: SandboxButton[] = [
     { label: '🤖 AI’ya geliştirt', apply: aiImprove, kind: 'primary' },
+    { label: '🎨 AI tasarımı değiştir', apply: aiRedesign },
     { label: '💥 AI bozdu!', apply: aiBreak, kind: 'danger', disabled: s.workLook.broken },
     {
       label: '💾 Commit at',
